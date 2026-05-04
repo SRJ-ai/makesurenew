@@ -6,55 +6,59 @@ Connect your GitHub repos and instantly see what needs attention — missing CI 
 
 ---
 
-## Features
+## Deploy to Render (free, ~5 min)
 
-- **GitHub OAuth** — sign in with one click, no new account needed
-- **Health scores** — 0–100 score per repo based on open-source best practices
-- **Instant scans** — checks README, LICENSE, CI workflows, .gitignore, and more
-- **Dashboard** — see all repos at a glance with health badges
-- **Detailed view** — drill into each repo to see exactly what's failing and why
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+### Steps
+
+1. **Fork this repo** to your GitHub account.
+
+2. **Create a GitHub OAuth App** at https://github.com/settings/developers → "New OAuth App":
+   - Homepage URL: `https://makesurenew.onrender.com`
+   - Authorization callback URL: `https://makesurenew.onrender.com/api/auth/callback`
+   - Copy the **Client ID** and **Client Secret**.
+
+3. **Connect to Render**:
+   - Sign up / log in at https://render.com
+   - Click **New → Blueprint** → select your forked repo
+   - Render reads `render.yaml` and creates: web service + PostgreSQL DB
+
+4. **Set secrets** in the Render dashboard → makesurenew service → Environment:
+   - `GITHUB_CLIENT_ID` → your OAuth App Client ID
+   - `GITHUB_CLIENT_SECRET` → your OAuth App Client Secret
+
+5. **Update the callback URL** in render.yaml and in your GitHub OAuth App if your Render service has a different name than `makesurenew`:
+   - `GITHUB_REDIRECT_URI` → `https://<your-service-name>.onrender.com/api/auth/callback`
+   - `FRONTEND_URL` → `https://<your-service-name>.onrender.com`
+
+6. **Trigger a deploy** — Render builds the Docker image, copies the frontend, and starts the server.
+
+> First deploy takes ~3 min. Subsequent deploys are faster.
 
 ---
 
-## Tech stack
-
-| Layer | Technology |
-|---|---|
-| Backend | Python 3.12 + FastAPI + PostgreSQL + SQLAlchemy |
-| Frontend | React 18 + TypeScript + Vite + Tailwind CSS |
-| Auth | GitHub OAuth2 + JWT |
-| Infra | Docker + Docker Compose |
-
----
-
-## Getting started
+## Run locally (Docker Compose)
 
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) + Docker Compose
 - A [GitHub OAuth App](https://github.com/settings/developers):
-  - **Homepage URL**: `http://localhost:5173`
-  - **Callback URL**: `http://localhost:8000/auth/callback`
-
-### Setup
+  - Callback URL: `http://localhost:8000/api/auth/callback`
 
 ```sh
 git clone https://github.com/srj-ai/makesurenew
 cd makesurenew
-
-# Copy and fill in your GitHub OAuth credentials
 cp .env.example .env
-
+# Edit .env — fill in GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET
 docker compose up
 ```
 
-Open **http://localhost:5173** — sign in with GitHub and sync your repos.
+Open **http://localhost:5173** → sign in with GitHub → sync your repos.
 
 ---
 
 ## How scoring works
-
-Each repo is scanned against a set of best-practice checks:
 
 | Check | Points |
 |---|---|
@@ -64,18 +68,26 @@ Each repo is scanned against a set of best-practice checks:
 | Has .gitignore | 20 |
 | **Total** | **100** |
 
-Scores ≥ 80 are **healthy**, 50–79 need **attention**, below 50 are **critical**.
+- **80–100** — Healthy
+- **50–79** — Needs attention
+- **0–49** — Critical
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.12 · FastAPI · PostgreSQL · SQLAlchemy |
+| Frontend | React 18 · TypeScript · Vite · Tailwind CSS |
+| Auth | GitHub OAuth2 · JWT |
+| Deploy | Docker · Render.com |
 
 ---
 
 ## Contributing
 
-We love contributions! See the [open issues](../../issues) to find something to work on.
-
-- `good first issue` — great for newcomers
-- `help wanted` — needs more experienced contributors
-
-Please open a PR and we'll review it promptly.
+See the [open issues](../../issues) — `good first issue` labels are great starting points.
 
 ---
 

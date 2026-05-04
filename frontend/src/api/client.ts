@@ -40,7 +40,7 @@ export interface DashboardSummary {
 
 export const authApi = {
   me: () => api.get<User>('/auth/me').then((r) => r.data),
-  loginUrl: '/api/auth/login',
+  loginUrl: '/api/auth/login',  // direct browser redirect (not axios)
 }
 
 export const reposApi = {

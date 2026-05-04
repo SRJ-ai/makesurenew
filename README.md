@@ -2,10 +2,39 @@
 
 [![CI](https://github.com/SRJ-ai/makesurenew/actions/workflows/ci.yml/badge.svg)](https://github.com/SRJ-ai/makesurenew/actions/workflows/ci.yml)
 [![Deploy](https://github.com/SRJ-ai/makesurenew/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/SRJ-ai/makesurenew/actions/workflows/deploy-pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-> Repository health monitoring dashboard for developer teams.
+> **Repository health monitoring dashboard for developer teams.**
+> Connect your GitHub repos — get a health score from 0–100, see exactly what's broken, and fix it.
 
-Connect your GitHub repos and instantly see what needs attention — missing CI workflows, no LICENSE file, outdated configs, and more. Every repo gets a **health score from 0–100**.
+**[🚀 Live Demo](https://srj-ai.github.io/makesurenew/)** · [Report a Bug](../../issues/new?template=bug_report.md) · [Request a Feature](../../issues/new?template=feature_request.md)
+
+---
+
+## What it does
+
+makesurenew scans your GitHub repositories against a set of best practices and gives each one a **health score from 0–100**. You see at a glance which repos are well-maintained and which need attention — no more manually checking every project.
+
+| Check | Points | Why it matters |
+|---|---|---|
+| README.md | 30 | Onboards contributors and users |
+| GitHub Actions CI | 30 | Catches regressions automatically |
+| LICENSE file | 20 | Required for anyone to legally use your code |
+| .gitignore | 20 | Prevents secrets and binaries from being committed |
+
+**Score ≥ 80** → Healthy · **50–79** → Needs attention · **< 50** → Critical
+
+---
+
+## Features
+
+- **One-click GitHub OAuth** — no new account, no password
+- **Sync all repos** — pulls your full GitHub repository list instantly
+- **Background scans** — health checks run async, no page freezing
+- **Drill-down view** — per-repo breakdown of every passing and failing check
+- **Actionable hints** — each failing check tells you exactly how to fix it
+- **Dark mode UI** — easy on the eyes, mobile-friendly
 
 ---
 
@@ -13,67 +42,34 @@ Connect your GitHub repos and instantly see what needs attention — missing CI 
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-### Steps
+1. **Fork this repo**
 
-1. **Fork this repo** to your GitHub account.
-
-2. **Create a GitHub OAuth App** at https://github.com/settings/developers → "New OAuth App":
+2. **Create a GitHub OAuth App** at [github.com/settings/developers](https://github.com/settings/developers):
    - Homepage URL: `https://makesurenew.onrender.com`
-   - Authorization callback URL: `https://makesurenew.onrender.com/api/auth/callback`
-   - Copy the **Client ID** and **Client Secret**.
+   - Callback URL: `https://makesurenew.onrender.com/api/auth/callback`
 
-3. **Connect to Render**:
-   - Sign up / log in at https://render.com
-   - Click **New → Blueprint** → select your forked repo
-   - Render reads `render.yaml` and creates: web service + PostgreSQL DB
+3. **New → Blueprint** on Render → select your fork → it reads `render.yaml` automatically (web service + PostgreSQL)
 
-4. **Set secrets** in the Render dashboard → makesurenew service → Environment:
-   - `GITHUB_CLIENT_ID` → your OAuth App Client ID
-   - `GITHUB_CLIENT_SECRET` → your OAuth App Client Secret
+4. **Set secrets** in Render dashboard:
+   - `GITHUB_CLIENT_ID`
+   - `GITHUB_CLIENT_SECRET`
 
-5. **Update the callback URL** in render.yaml and in your GitHub OAuth App if your Render service has a different name than `makesurenew`:
-   - `GITHUB_REDIRECT_URI` → `https://<your-service-name>.onrender.com/api/auth/callback`
-   - `FRONTEND_URL` → `https://<your-service-name>.onrender.com`
-
-6. **Trigger a deploy** — Render builds the Docker image, copies the frontend, and starts the server.
-
-> First deploy takes ~3 min. Subsequent deploys are faster.
+5. **Deploy** — first build takes ~3 min.
 
 ---
 
-## Run locally (Docker Compose)
-
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) + Docker Compose
-- A [GitHub OAuth App](https://github.com/settings/developers):
-  - Callback URL: `http://localhost:8000/api/auth/callback`
+## Run locally
 
 ```sh
 git clone https://github.com/srj-ai/makesurenew
 cd makesurenew
 cp .env.example .env
-# Edit .env — fill in GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET
+# Fill in GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET
+# GitHub OAuth App callback: http://localhost:8000/api/auth/callback
 docker compose up
 ```
 
-Open **http://localhost:5173** → sign in with GitHub → sync your repos.
-
----
-
-## How scoring works
-
-| Check | Points |
-|---|---|
-| Has README | 30 |
-| Has CI workflow (GitHub Actions) | 30 |
-| Has LICENSE | 20 |
-| Has .gitignore | 20 |
-| **Total** | **100** |
-
-- **80–100** — Healthy
-- **50–79** — Needs attention
-- **0–49** — Critical
+Open **http://localhost:5173**
 
 ---
 
@@ -84,16 +80,52 @@ Open **http://localhost:5173** → sign in with GitHub → sync your repos.
 | Backend | Python 3.12 · FastAPI · PostgreSQL · SQLAlchemy |
 | Frontend | React 18 · TypeScript · Vite · Tailwind CSS |
 | Auth | GitHub OAuth2 · JWT |
-| Deploy | Docker · Render.com |
+| Deploy | Docker · Render.com · GitHub Pages (demo) |
+
+---
+
+## Project structure
+
+```
+makesurenew/
+├── backend/
+│   └── app/
+│       ├── routers/       # auth, repos, dashboard API routes
+│       ├── services/      # scanner — GitHub API health checks
+│       ├── models.py      # SQLAlchemy ORM models
+│       └── main.py        # FastAPI app + static file serving
+├── frontend/
+│   └── src/
+│       ├── api/           # axios client + demo mock data
+│       ├── pages/         # Login, Dashboard, RepoDetail
+│       ├── components/    # RepoCard, HealthBadge
+│       └── hooks/         # useAuth
+├── .github/
+│   └── workflows/         # CI + GitHub Pages deploy
+├── docker-compose.yml     # local development
+├── Dockerfile             # production single-service build
+└── render.yaml            # Render.com Blueprint config
+```
 
 ---
 
 ## Contributing
 
-See the [open issues](../../issues) — `good first issue` labels are great starting points.
+Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) to get started.
+
+- [`good first issue`](../../issues?q=is%3Aopen+label%3A%22good+first+issue%22) — great for newcomers
+- [`help wanted`](../../issues?q=is%3Aopen+label%3A%22help+wanted%22) — needs more experienced contributors
+
+Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) before contributing.
+
+---
+
+## Security
+
+Found a vulnerability? Please report it privately — see [SECURITY.md](./SECURITY.md).
 
 ---
 
 ## License
 
-MIT
+[MIT](./LICENSE) © makesurenew contributors

@@ -1,5 +1,8 @@
 # makesurenew
 
+[![CI](https://github.com/SRJ-ai/makesurenew/actions/workflows/ci.yml/badge.svg)](https://github.com/SRJ-ai/makesurenew/actions/workflows/ci.yml)
+[![Deploy](https://github.com/SRJ-ai/makesurenew/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/SRJ-ai/makesurenew/actions/workflows/deploy-pages.yml)
+
 > Repository health monitoring dashboard for developer teams.
 
 Connect your GitHub repos and instantly see what needs attention — missing CI workflows, no LICENSE file, outdated configs, and more. Every repo gets a **health score from 0–100**.

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -24,8 +24,8 @@ class Repository(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     github_repo_id = Column(Integer, unique=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    full_name = Column(String)
+    owner_id = Column(Integer, ForeignKey("users.id"), index=True)
+    full_name = Column(String, index=True)
     name = Column(String)
     description = Column(Text, nullable=True)
     is_private = Column(Boolean, default=False)
@@ -35,3 +35,7 @@ class Repository(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="repos")
+
+    __table_args__ = (
+        Index("ix_repo_owner_score", "owner_id", "health_score"),
+    )

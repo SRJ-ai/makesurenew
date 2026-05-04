@@ -45,6 +45,13 @@ export interface DashboardSummary {
   needs_attention: number
 }
 
+export interface ListReposParams {
+  q?: string
+  sort?: 'name' | 'score' | 'scanned'
+  page?: number
+  per_page?: number
+}
+
 export const authApi = IS_DEMO
   ? demoAuthApi
   : {
@@ -55,14 +62,21 @@ export const authApi = IS_DEMO
 export const reposApi = IS_DEMO
   ? demoReposApi
   : {
-      list: () => api.get<Repo[]>('/repos/').then((r) => r.data),
-      sync: () => api.post<{ synced: number }>('/repos/sync').then((r) => r.data),
-      scan: (id: number) => api.post(`/repos/${id}/scan`).then((r) => r.data),
-      get: (id: number) => api.get<Repo>(`/repos/${id}`).then((r) => r.data),
+      list: (params?: ListReposParams) =>
+        api.get<Repo[]>('/repos/', { params }).then((r) => r.data),
+      sync: () =>
+        api.post<{ synced: number }>('/repos/sync').then((r) => r.data),
+      scanAll: () =>
+        api.post<{ count: number }>('/repos/scan-all').then((r) => r.data),
+      scan: (id: number) =>
+        api.post(`/repos/${id}/scan`).then((r) => r.data),
+      get: (id: number) =>
+        api.get<Repo>(`/repos/${id}`).then((r) => r.data),
     }
 
 export const dashboardApi = IS_DEMO
   ? demoDashboardApi
   : {
-      summary: () => api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
+      summary: () =>
+        api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
     }

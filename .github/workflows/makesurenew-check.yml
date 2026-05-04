@@ -1,0 +1,102 @@
+# Add this workflow to any project to post a makesurenew health badge as a PR comment.
+# Copy this file to .github/workflows/makesurenew-check.yml in your repo.
+name: makesurenew health check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check repository health
+        id: check
+        run: |
+          REPO="${{ github.repository }}"
+          SCORE=0
+          ISSUES=""
+
+          # README
+          if [ -f "README.md" ] || [ -f "readme.md" ]; then
+            SCORE=$((SCORE + 30))
+          else
+            ISSUES="$ISSUES\n- ❌ Missing README.md (30 pts)"
+          fi
+
+          # LICENSE
+          if [ -f "LICENSE" ] || [ -f "LICENSE.md" ] || [ -f "LICENSE.txt" ]; then
+            SCORE=$((SCORE + 20))
+          else
+            ISSUES="$ISSUES\n- ❌ Missing LICENSE file (20 pts)"
+          fi
+
+          # CI workflows
+          if [ -d ".github/workflows" ] && [ "$(ls -A .github/workflows)" ]; then
+            SCORE=$((SCORE + 25))
+          else
+            ISSUES="$ISSUES\n- ❌ No GitHub Actions CI workflow (25 pts)"
+          fi
+
+          # SECURITY.md
+          if [ -f "SECURITY.md" ]; then
+            SCORE=$((SCORE + 10))
+          else
+            ISSUES="$ISSUES\n- ❌ Missing SECURITY.md (10 pts)"
+          fi
+
+          # CONTRIBUTING.md
+          if [ -f "CONTRIBUTING.md" ]; then
+            SCORE=$((SCORE + 10))
+          else
+            ISSUES="$ISSUES\n- ❌ Missing CONTRIBUTING.md (10 pts)"
+          fi
+
+          # .gitignore
+          if [ -f ".gitignore" ]; then
+            SCORE=$((SCORE + 5))
+          else
+            ISSUES="$ISSUES\n- ❌ Missing .gitignore (5 pts)"
+          fi
+
+          if [ $SCORE -ge 80 ]; then
+            EMOJI="🟢"
+          elif [ $SCORE -ge 50 ]; then
+            EMOJI="🟡"
+          else
+            EMOJI="🔴"
+          fi
+
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+          {
+            echo "issues<<EOF"
+            printf "$ISSUES"
+            echo ""
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = '${{ steps.check.outputs.score }}';
+            const emoji = '${{ steps.check.outputs.emoji }}';
+            const issues = `${{ steps.check.outputs.issues }}`;
+            const body = [
+              `## ${emoji} makesurenew health score: **${score} / 100**`,
+              '',
+              issues || '✅ All checks passed!',
+              '',
+              `> [View full report](https://srj-ai.github.io/makesurenew/) · Powered by [makesurenew](https://github.com/srj-ai/makesurenew)`,
+            ].join('\n');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

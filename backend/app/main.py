@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .database import Base, engine
-from .routers import auth, dashboard, repos
+from .routers import auth, badge, dashboard, repos
 
 Base.metadata.create_all(bind=engine)
 
@@ -15,15 +15,16 @@ app = FastAPI(title="makesurenew API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url, "*"],
+    allow_origins=[settings.frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(repos.router, prefix="/api/repos", tags=["repos"])
+app.include_router(auth.router,      prefix="/api/auth",      tags=["auth"])
+app.include_router(repos.router,     prefix="/api/repos",     tags=["repos"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(badge.router,     prefix="/api/badge",     tags=["badge"])
 
 
 @app.get("/health")
@@ -31,7 +32,7 @@ def health_check():
     return {"status": "ok", "version": "0.1.0"}
 
 
-# Serve built React frontend (production only — not present in dev)
+# Serve built React frontend in production (static/ not present in dev)
 _static = Path(__file__).parent.parent / "static"
 if _static.exists():
     app.mount("/assets", StaticFiles(directory=str(_static / "assets")), name="assets")

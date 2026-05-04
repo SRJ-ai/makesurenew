@@ -1,0 +1,37 @@
+# Binaries
+/dist/
+/bin/
+*.exe
+*.out
+*.o
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+build/
+.cache/
+
+# Environment
+.env
+.env.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+.nyc_output/

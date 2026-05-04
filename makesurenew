@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""makesurenew - A fast, developer-friendly CLI tool for modern workflows."""
+
+__version__ = "0.1.0"
+
+import argparse
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="makesurenew",
+        description="A fast, developer-friendly CLI tool for modern workflows."
+    )
+    parser.add_argument(
+        "--version", "-V",
+        action="version",
+        version=f"%(prog)s {__version__}"
+    )
+    args = parser.parse_args()
+    print("makesurenew - A fast, developer-friendly CLI tool.")
+    print("Run 'makesurenew --help' for usage.")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,9 +1,10 @@
 import { useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { authApi } from '../api/client'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { authApi, IS_DEMO } from '../api/client'
 
 export function useAuth() {
-  const token = localStorage.getItem('token')
+  const token = IS_DEMO ? 'demo' : localStorage.getItem('token')
+  const queryClient = useQueryClient()
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['me'],
@@ -12,9 +13,14 @@ export function useAuth() {
   })
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
-    window.location.href = '/login'
-  }, [])
+    if (IS_DEMO) {
+      queryClient.clear()
+      window.location.reload()
+    } else {
+      localStorage.removeItem('token')
+      window.location.href = import.meta.env.BASE_URL || '/'
+    }
+  }, [queryClient])
 
   return { user, isAuthenticated: !!user, isLoading, logout }
 }

@@ -1,4 +1,11 @@
 import axios from 'axios'
+import {
+  demoAuthApi,
+  demoDashboardApi,
+  demoReposApi,
+} from './demo'
+
+export const IS_DEMO = import.meta.env.VITE_DEMO_MODE === 'true'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -38,18 +45,24 @@ export interface DashboardSummary {
   needs_attention: number
 }
 
-export const authApi = {
-  me: () => api.get<User>('/auth/me').then((r) => r.data),
-  loginUrl: '/api/auth/login',  // direct browser redirect (not axios)
-}
+export const authApi = IS_DEMO
+  ? demoAuthApi
+  : {
+      me: () => api.get<User>('/auth/me').then((r) => r.data),
+      loginUrl: '/api/auth/login',
+    }
 
-export const reposApi = {
-  list: () => api.get<Repo[]>('/repos/').then((r) => r.data),
-  sync: () => api.post<{ synced: number }>('/repos/sync').then((r) => r.data),
-  scan: (id: number) => api.post(`/repos/${id}/scan`).then((r) => r.data),
-  get: (id: number) => api.get<Repo>(`/repos/${id}`).then((r) => r.data),
-}
+export const reposApi = IS_DEMO
+  ? demoReposApi
+  : {
+      list: () => api.get<Repo[]>('/repos/').then((r) => r.data),
+      sync: () => api.post<{ synced: number }>('/repos/sync').then((r) => r.data),
+      scan: (id: number) => api.post(`/repos/${id}/scan`).then((r) => r.data),
+      get: (id: number) => api.get<Repo>(`/repos/${id}`).then((r) => r.data),
+    }
 
-export const dashboardApi = {
-  summary: () => api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
-}
+export const dashboardApi = IS_DEMO
+  ? demoDashboardApi
+  : {
+      summary: () => api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
+    }

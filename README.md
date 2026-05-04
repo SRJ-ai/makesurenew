@@ -1,6 +1,6 @@
 # makesurenew
 
-[![CI](https://github.com/q404365631/makesurenew/actions/workflows/ci.yml/badge.svg)](https://github.com/q404365631/makesurenew/actions/workflows/ci.yml)
+[![CI](https://github.com/SRJ-ai/makesurenew/actions/workflows/ci.yml/badge.svg)](https://github.com/SRJ-ai/makesurenew/actions/workflows/ci.yml)
 
 A fast, developer-friendly CLI tool built for modern workflows.
 

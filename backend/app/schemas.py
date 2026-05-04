@@ -1,0 +1,35 @@
+from datetime import datetime
+from typing import Any, Optional
+
+from pydantic import BaseModel
+
+
+class UserOut(BaseModel):
+    id: int
+    github_id: int
+    username: str
+    email: Optional[str]
+    avatar_url: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+class RepoOut(BaseModel):
+    id: int
+    full_name: str
+    name: str
+    description: Optional[str]
+    is_private: bool
+    health_score: Optional[int]
+    last_scanned_at: Optional[datetime]
+    scan_results: Optional[Any]
+
+    model_config = {"from_attributes": True}
+
+
+class DashboardSummary(BaseModel):
+    total_repos: int
+    scanned_repos: int
+    average_health_score: Optional[int]
+    healthy: int
+    needs_attention: int

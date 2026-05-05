@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, RefreshCw, ScanLine, Settings } from 'lucide-react'
+import { LogOut, RefreshCw, ScanLine, Search, Settings } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
@@ -12,6 +12,8 @@ export default function Dashboard() {
   const queryClient = useQueryClient()
   // IDs of repos that had no score when "Scan all" was clicked
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<'name' | 'score' | 'scanned'>('name')
 
   const { data: summary } = useQuery({
     queryKey: ['summary'],
@@ -19,8 +21,8 @@ export default function Dashboard() {
   })
 
   const { data: repos, isLoading } = useQuery({
-    queryKey: ['repos'],
-    queryFn: () => reposApi.list(),
+    queryKey: ['repos', search, sort],
+    queryFn: () => reposApi.list({ q: search || undefined, sort }),
     refetchInterval: pendingIds.size > 0 ? 4000 : false,
     onSuccess: (data) => {
       if (pendingIds.size === 0) return
@@ -45,7 +47,6 @@ export default function Dashboard() {
   const scanAll = useMutation({
     mutationFn: reposApi.scanAll,
     onSuccess: () => {
-      // Snapshot repos that need pendingIds.size > 0 so polling stops precisely when they're done
       const nullIds = new Set((repos ?? []).filter((r) => r.health_score === null).map((r) => r.id))
       setPendingIds(nullIds.size > 0 ? nullIds : new Set((repos ?? []).map((r) => r.id)))
       toast.success('Scanning all repos…')
@@ -97,12 +98,34 @@ export default function Dashboard() {
           </div>
         )}
 
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search repositories…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+            />
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-gray-500"
+          >
+            <option value="name">Sort: Name</option>
+            <option value="score">Sort: Score</option>
+            <option value="scanned">Sort: Last scanned</option>
+          </select>
+        </div>
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">
             Your Repositories
             {pendingIds.size > 0 && (
               <span className="ml-3 text-xs text-yellow-400 animate-pulse font-normal">
-                pendingIds.size > 0…
+                Scanning…
               </span>
             )}
           </h2>

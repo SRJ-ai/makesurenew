@@ -10,7 +10,16 @@ class UserOut(BaseModel):
     username: str
     email: Optional[str]
     avatar_url: Optional[str]
+    api_key: Optional[str] = None
     email_notifications: bool = False
+
+    model_config = {"from_attributes": True}
+
+
+class ScanHistoryOut(BaseModel):
+    id: int
+    health_score: int
+    scanned_at: datetime
 
     model_config = {"from_attributes": True}
 

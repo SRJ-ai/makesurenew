@@ -5,9 +5,9 @@ from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Repository
+from ..models import Repository, ScanHistory
 from ..routers.auth import get_current_user
-from ..schemas import RepoOut
+from ..schemas import RepoOut, ScanHistoryOut
 from ..services.scanner import scan_repository
 
 router = APIRouter()
@@ -121,3 +121,20 @@ def get_repo(repo_id: int, token: str, db: Session = Depends(get_db)):
     if not repo:
         raise HTTPException(status_code=404, detail="Repo not found")
     return repo
+
+
+@router.get("/{repo_id}/history", response_model=list[ScanHistoryOut])
+def get_repo_history(repo_id: int, token: str, db: Session = Depends(get_db)):
+    user = get_current_user(token, db)
+    repo = db.query(Repository).filter(
+        Repository.id == repo_id, Repository.owner_id == user.id
+    ).first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repo not found")
+    return (
+        db.query(ScanHistory)
+        .filter(ScanHistory.repository_id == repo_id)
+        .order_by(ScanHistory.scanned_at.desc())
+        .limit(30)
+        .all()
+    )

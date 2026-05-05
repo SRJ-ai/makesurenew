@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Copy, ExternalLink, ShieldCheck } from 'lucide-react'
+import { Bell, Copy, ExternalLink, Key, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
@@ -40,6 +40,24 @@ export default function Settings() {
       toast.success('Settings saved')
     },
     onError: () => toast.error('Failed to save settings'),
+  })
+
+  const generateKey = useMutation({
+    mutationFn: usersApi.generateApiKey,
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['me'], updated)
+      toast.success('API key generated')
+    },
+    onError: () => toast.error('Failed to generate key'),
+  })
+
+  const revokeKey = useMutation({
+    mutationFn: usersApi.revokeApiKey,
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['me'], updated)
+      toast.success('API key revoked')
+    },
+    onError: () => toast.error('Failed to revoke key'),
   })
 
   function copy(text: string, key: 'url' | 'workflow') {
@@ -100,6 +118,49 @@ export default function Settings() {
             <p className="text-sm text-yellow-500">
               No email address linked to your GitHub account. Add one in your GitHub profile settings.
             </p>
+          )}
+        </section>
+
+        {/* API key */}
+        <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-1">
+            <Key className="w-5 h-5 text-purple-400" />
+            <h2 className="font-semibold">API key</h2>
+          </div>
+          <p className="text-gray-400 text-sm mb-5">
+            Use this key to query the makesurenew API from scripts or CI pipelines.
+          </p>
+
+          {user?.api_key ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-gray-800 px-3 py-2 rounded-lg text-sm text-purple-300 truncate font-mono">
+                  {user.api_key}
+                </code>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(user.api_key!); copy(user.api_key!, 'url') }}
+                  className="flex items-center gap-1.5 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors shrink-0"
+                >
+                  <Copy className="w-4 h-4" />
+                  {copied === 'url' ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <button
+                onClick={() => revokeKey.mutate()}
+                disabled={revokeKey.isPending}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+              >
+                Revoke key
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => generateKey.mutate()}
+              disabled={generateKey.isPending}
+              className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
+            >
+              Generate API key
+            </button>
           )}
         </section>
 

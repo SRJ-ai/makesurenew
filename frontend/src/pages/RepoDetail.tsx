@@ -1,9 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle, Copy, Scan, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Copy, ExternalLink, Scan, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link, useParams } from 'react-router-dom'
 import { reposApi } from '../api/client'
+
+const FIX_LINKS: Record<string, (fullName: string) => string> = {
+  has_readme:          (r) => `https://github.com/${r}/new/main?filename=README.md`,
+  has_license:         (r) => `https://github.com/${r}/community/license/new`,
+  has_ci:              (r) => `https://github.com/${r}/new/main?filename=.github%2Fworkflows%2Fci.yml`,
+  has_gitignore:       (r) => `https://github.com/${r}/new/main?filename=.gitignore`,
+  has_security_policy: (r) => `https://github.com/${r}/security/policy`,
+  has_contributing:    (r) => `https://github.com/${r}/new/main?filename=CONTRIBUTING.md`,
+  has_code_of_conduct: (r) => `https://github.com/${r}/community/code-of-conduct/new`,
+}
 
 const BADGE_BASE = 'https://makesurenew.onrender.com'
 
@@ -13,6 +23,12 @@ export default function RepoDetail() {
   const queryClient = useQueryClient()
   // ISO timestamp captured the moment "Scan now" is clicked; null = not scanning
   const [scanTriggeredAt, setScanTriggeredAt] = useState<string | null>(null)
+
+  const { data: history } = useQuery({
+    queryKey: ['repo-history', repoId],
+    queryFn: () => reposApi.history(repoId),
+    enabled: !scanTriggeredAt,
+  })
 
   const { data: repo, isLoading } = useQuery({
     queryKey: ['repo', repoId],
@@ -142,25 +158,65 @@ export default function RepoDetail() {
         {issues.length > 0 && (
           <div className="space-y-3">
             <h2 className="font-semibold mb-2">Issues to fix</h2>
-            {issues.map((issue) => (
-              <div
-                key={issue.check}
-                className={`rounded-xl p-4 border-l-4 ${
-                  issue.severity === 'high'
-                    ? 'bg-red-950 border-red-500'
-                    : 'bg-yellow-950 border-yellow-500'
-                }`}
-              >
-                <p className="text-sm text-gray-200">{issue.message}</p>
-                <span
-                  className={`text-xs mt-1 inline-block ${
-                    issue.severity === 'high' ? 'text-red-400' : 'text-yellow-400'
+            {issues.map((issue) => {
+              const fixUrl = FIX_LINKS[issue.check]?.(repo.full_name)
+              return (
+                <div
+                  key={issue.check}
+                  className={`rounded-xl p-4 border-l-4 ${
+                    issue.severity === 'high'
+                      ? 'bg-red-950 border-red-500'
+                      : 'bg-yellow-950 border-yellow-500'
                   }`}
                 >
-                  {issue.severity} priority
-                </span>
-              </div>
-            ))}
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm text-gray-200">{issue.message}</p>
+                    {fixUrl && (
+                      <a
+                        href={fixUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 shrink-0 transition-colors"
+                      >
+                        Fix it <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs mt-1 inline-block ${
+                      issue.severity === 'high' ? 'text-red-400' : 'text-yellow-400'
+                    }`}
+                  >
+                    {issue.severity} priority
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {history && history.length > 1 && (
+          <div className="bg-gray-900 rounded-xl p-6 mt-6">
+            <h2 className="font-semibold mb-4">Score history</h2>
+            <div className="flex items-end gap-1 h-16">
+              {[...history].reverse().map((entry, i) => {
+                const color =
+                  entry.health_score >= 80 ? 'bg-green-400' :
+                  entry.health_score >= 50 ? 'bg-yellow-400' : 'bg-red-400'
+                return (
+                  <div key={entry.id} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    <div
+                      className={`w-full rounded-sm ${color} transition-all`}
+                      style={{ height: `${entry.health_score}%` }}
+                    />
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-700 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
+                      {entry.health_score} · {new Date(entry.scanned_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-gray-500 text-xs mt-2">Last {history.length} scans</p>
           </div>
         )}
 

@@ -5,7 +5,7 @@ import httpx
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import SessionLocal
-from ..models import Repository, User
+from ..models import Repository, ScanHistory, User
 from .notifier import notify_score_drop
 
 CHECKS = {
@@ -109,6 +109,7 @@ async def scan_repository(repo_id: int, access_token: str) -> None:
         repo.health_score = score
         repo.last_scanned_at = datetime.now(timezone.utc)
         repo.scan_results = {"checks": checks, "issues": issues}
+        db.add(ScanHistory(repository_id=repo.id, health_score=score))
         db.commit()
 
         if old_score is not None and score <= old_score - 10:

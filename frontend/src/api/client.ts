@@ -21,6 +21,7 @@ export interface User {
   username: string
   email: string | null
   avatar_url: string | null
+  api_key?: string | null
   email_notifications?: boolean
 }
 
@@ -46,6 +47,12 @@ export interface DashboardSummary {
   needs_attention: number
 }
 
+export interface ScanHistoryEntry {
+  id: number
+  health_score: number
+  scanned_at: string
+}
+
 export interface ListReposParams {
   q?: string
   sort?: 'name' | 'score' | 'scanned'
@@ -68,6 +75,8 @@ export const reposApi = IS_DEMO
       scanAll: () => api.post<{ count: number }>('/repos/scan-all').then((r) => r.data),
       scan: (id: number) => api.post(`/repos/${id}/scan`).then((r) => r.data),
       get: (id: number) => api.get<Repo>(`/repos/${id}`).then((r) => r.data),
+      history: (id: number) =>
+        api.get<ScanHistoryEntry[]>(`/repos/${id}/history`).then((r) => r.data),
     }
 
 export const dashboardApi = IS_DEMO
@@ -78,11 +87,14 @@ export const dashboardApi = IS_DEMO
 
 export const usersApi = IS_DEMO
   ? {
-      updateMe: async (prefs: { email_notifications: boolean }) => {
-        return { email_notifications: prefs.email_notifications } as User
-      },
+      updateMe: async (prefs: { email_notifications: boolean }) =>
+        ({ email_notifications: prefs.email_notifications }) as User,
+      generateApiKey: async () => ({ api_key: 'demo-key-not-real' }) as User,
+      revokeApiKey: async () => ({}) as User,
     }
   : {
       updateMe: (prefs: { email_notifications: boolean }) =>
         api.patch<User>('/users/me', prefs).then((r) => r.data),
+      generateApiKey: () => api.post<User>('/users/me/api-key').then((r) => r.data),
+      revokeApiKey: () => api.delete<User>('/users/me/api-key').then((r) => r.data),
     }

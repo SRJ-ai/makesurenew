@@ -1,4 +1,4 @@
-import type { DashboardSummary, ListReposParams, Repo, User } from './client'
+import type { DashboardSummary, ListReposParams, Repo, ScanHistoryEntry, User } from './client'
 
 export const DEMO_USER: User = {
   id: 1,
@@ -141,6 +141,17 @@ export const demoReposApi = {
   scanAll: async () => { await delay(600); return { count: DEMO_REPOS.length } },
   scan: async (_id: number) => { await delay(600); return { status: 'scan queued' } },
   get: async (id: number) => { await delay(200); return DEMO_REPOS.find((r) => r.id === id)! },
+  history: async (id: number): Promise<ScanHistoryEntry[]> => {
+    await delay(200)
+    const repo = DEMO_REPOS.find((r) => r.id === id)
+    if (!repo?.health_score) return []
+    const base = repo.health_score
+    return Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      health_score: Math.max(0, Math.min(100, base - (9 - i) * 3 + Math.round(Math.random() * 6 - 3))),
+      scanned_at: new Date(Date.now() - (9 - i) * 6 * 3600 * 1000).toISOString(),
+    }))
+  },
 }
 
 export const demoDashboardApi = {

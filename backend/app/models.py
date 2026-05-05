@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -43,3 +43,24 @@ class Repository(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="repos")
+    history = relationship(
+        "ScanHistory",
+        back_populates="repository",
+        order_by="ScanHistory.scanned_at.desc()",
+        passive_deletes=True,
+    )
+
+
+class ScanHistory(Base):
+    __tablename__ = "scan_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    repository_id = Column(Integer, ForeignKey("repositories.id", ondelete="CASCADE"), index=True)
+    health_score = Column(Integer, nullable=False)
+    scanned_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    repository = relationship("Repository", back_populates="history")
+
+    __table_args__ = (
+        Index("ix_scan_history_repo_time", "repository_id", "scanned_at"),
+    )

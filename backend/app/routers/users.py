@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -17,6 +19,24 @@ class UserPrefs(BaseModel):
 def update_preferences(prefs: UserPrefs, token: str, db: Session = Depends(get_db)):
     user = get_current_user(token, db)
     user.email_notifications = prefs.email_notifications
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/me/api-key", response_model=UserOut)
+def generate_api_key(token: str, db: Session = Depends(get_db)):
+    user = get_current_user(token, db)
+    user.api_key = secrets.token_urlsafe(32)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.delete("/me/api-key", response_model=UserOut)
+def revoke_api_key(token: str, db: Session = Depends(get_db)):
+    user = get_current_user(token, db)
+    user.api_key = None
     db.commit()
     db.refresh(user)
     return user

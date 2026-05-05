@@ -5,7 +5,8 @@ import httpx
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
-from ..models import Repository
+from ..models import Repository, User
+from .notifier import notify_score_drop
 
 CHECKS = {
     "has_readme":           25,
@@ -98,11 +99,18 @@ async def scan_repository(repo_id: int, access_token: str) -> None:
         repo = db.query(Repository).filter(Repository.id == repo_id).first()
         if not repo:
             return
+        old_score = repo.health_score
         checks = await _run_checks(repo.full_name, access_token)
         score, issues = _score(checks)
         repo.health_score = score
         repo.last_scanned_at = datetime.utcnow()
         repo.scan_results = {"checks": checks, "issues": issues}
         db.commit()
+        db.refresh(repo)
+
+        if old_score is not None and score <= old_score - 10:
+            user = db.query(User).filter(User.id == repo.owner_id).first()
+            if user:
+                await notify_score_drop(user, repo, old_score, score)
     finally:
         db.close()

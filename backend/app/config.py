@@ -15,6 +15,16 @@ class Settings(BaseSettings):
     stripe_pro_price_id: str = ""
     stripe_team_price_id: str = ""
 
+    # GitHub webhook
+    github_webhook_secret: str = ""
+
+    # SMTP for score-drop notifications
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@makesurenew.dev"
+
     class Config:
         env_file = ".env"
 

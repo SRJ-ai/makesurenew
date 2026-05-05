@@ -10,6 +10,7 @@ class UserOut(BaseModel):
     username: str
     email: Optional[str]
     avatar_url: Optional[str]
+    email_notifications: bool = False
 
     model_config = {"from_attributes": True}
 

@@ -22,6 +22,7 @@ class User(Base):
     subscription_ends_at = Column(DateTime(timezone=True), nullable=True)
     repos_limit = Column(Integer, default=5)        # free=5, pro=unlimited(-1), team=-1
     api_key = Column(String, nullable=True, unique=True, index=True)
+    email_notifications = Column(Boolean, default=False)
 
     repos = relationship("Repository", back_populates="owner")
 

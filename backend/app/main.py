@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI
@@ -13,12 +14,22 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .database import Base, engine, get_db
 from .routers import auth, badge, billing, dashboard, public, repos
+from .routers import github_webhooks, users
+from .services.scheduler import start_scheduler, stop_scheduler
 
 Base.metadata.create_all(bind=engine)
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="makesurenew API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
+app = FastAPI(title="makesurenew API", version="0.1.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -30,12 +41,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router,      prefix="/api/auth",      tags=["auth"])
-app.include_router(repos.router,     prefix="/api/repos",     tags=["repos"])
-app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
-app.include_router(badge.router,     prefix="/api/badge",     tags=["badge"])
-app.include_router(public.router,    prefix="/api/public",    tags=["public"])
-app.include_router(billing.router,   prefix="/api/billing",   tags=["billing"])
+app.include_router(auth.router,             prefix="/api/auth",    tags=["auth"])
+app.include_router(repos.router,            prefix="/api/repos",   tags=["repos"])
+app.include_router(dashboard.router,        prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(badge.router,            prefix="/api/badge",   tags=["badge"])
+app.include_router(public.router,           prefix="/api/public",  tags=["public"])
+app.include_router(billing.router,          prefix="/api/billing", tags=["billing"])
+app.include_router(github_webhooks.router,  prefix="/api/github",  tags=["github"])
+app.include_router(users.router,            prefix="/api/users",   tags=["users"])
 
 
 @app.get("/health")

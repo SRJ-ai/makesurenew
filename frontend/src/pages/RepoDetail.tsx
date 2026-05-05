@@ -1,24 +1,43 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle, Scan, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Copy, Scan, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { Link, useParams } from 'react-router-dom'
 import { reposApi } from '../api/client'
+
+const BADGE_BASE = 'https://makesurenew.onrender.com'
 
 export default function RepoDetail() {
   const { id } = useParams<{ id: string }>()
   const repoId = Number(id)
   const queryClient = useQueryClient()
+  const [isScanning, setIsScanning] = useState(false)
 
   const { data: repo, isLoading } = useQuery({
     queryKey: ['repo', repoId],
     queryFn: () => reposApi.get(repoId),
+    refetchInterval: isScanning ? 3000 : false,
+    onSuccess: (data) => {
+      if (isScanning && data.last_scanned_at) {
+        setIsScanning(false)
+        queryClient.invalidateQueries({ queryKey: ['repos'] })
+        toast.success('Scan complete!')
+      }
+    },
   })
 
   const scan = useMutation({
     mutationFn: () => reposApi.scan(repoId),
-    onSuccess: () => {
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['repo', repoId] }), 3000)
-    },
+    onSuccess: () => setIsScanning(true),
+    onError: () => toast.error('Scan failed — try again'),
   })
+
+  function copyBadge() {
+    if (!repo) return
+    const badge = `[![makesurenew](${BADGE_BASE}/api/badge/${repo.full_name})](${BADGE_BASE})`
+    navigator.clipboard.writeText(badge)
+    toast.success('Badge markdown copied!')
+  }
 
   if (isLoading) {
     return (
@@ -32,21 +51,13 @@ export default function RepoDetail() {
   const checks = repo.scan_results?.checks ?? {}
   const issues = repo.scan_results?.issues ?? []
   const scoreColor =
-    repo.health_score == null
-      ? ''
-      : repo.health_score >= 80
-        ? 'text-green-400'
-        : repo.health_score >= 50
-          ? 'text-yellow-400'
-          : 'text-red-400'
+    repo.health_score == null ? '' :
+    repo.health_score >= 80 ? 'text-green-400' :
+    repo.health_score >= 50 ? 'text-yellow-400' : 'text-red-400'
   const barColor =
-    repo.health_score == null
-      ? ''
-      : repo.health_score >= 80
-        ? 'bg-green-400'
-        : repo.health_score >= 50
-          ? 'bg-yellow-400'
-          : 'bg-red-400'
+    repo.health_score == null ? '' :
+    repo.health_score >= 80 ? 'bg-green-400' :
+    repo.health_score >= 50 ? 'bg-yellow-400' : 'bg-red-400'
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -58,21 +69,30 @@ export default function RepoDetail() {
           <ArrowLeft className="w-4 h-4" /> Back to dashboard
         </Link>
 
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold">{repo.full_name}</h1>
+        <div className="flex items-start justify-between mb-6 gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold truncate">{repo.full_name}</h1>
             {repo.description && (
               <p className="text-gray-500 mt-1 text-sm">{repo.description}</p>
             )}
           </div>
-          <button
-            onClick={() => scan.mutate()}
-            disabled={scan.isPending}
-            className="flex items-center gap-2 bg-green-700 hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Scan className="w-4 h-4" />
-            {scan.isPending ? 'Scanning…' : 'Scan now'}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={copyBadge}
+              className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+              Badge
+            </button>
+            <button
+              onClick={() => scan.mutate()}
+              disabled={scan.isPending || isScanning}
+              className="flex items-center gap-2 bg-green-700 hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Scan className={`w-4 h-4 ${isScanning ? 'animate-pulse' : ''}`} />
+              {isScanning ? 'Scanning…' : 'Scan now'}
+            </button>
+          </div>
         </div>
 
         {repo.health_score != null && (
@@ -143,7 +163,7 @@ export default function RepoDetail() {
           </div>
         )}
 
-        {repo.health_score == null && (
+        {repo.health_score == null && !isScanning && (
           <div className="text-center py-12 bg-gray-900 rounded-xl">
             <p className="text-gray-500 mb-4">This repo hasn't been scanned yet.</p>
             <button
@@ -152,6 +172,12 @@ export default function RepoDetail() {
             >
               Run first scan
             </button>
+          </div>
+        )}
+
+        {isScanning && (
+          <div className="text-center py-8 text-yellow-400 text-sm animate-pulse">
+            Scan in progress — results will appear automatically…
           </div>
         )}
       </div>

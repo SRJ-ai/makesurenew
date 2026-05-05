@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, RefreshCw, ShieldCheck } from 'lucide-react'
+import { LogOut, RefreshCw, ScanLine, Settings } from 'lucide-react'
+import { useState } from 'react'
+import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 import { dashboardApi, reposApi } from '../api/client'
 import RepoCard from '../components/RepoCard'
 import { useAuth } from '../hooks/useAuth'
@@ -7,26 +10,48 @@ import { useAuth } from '../hooks/useAuth'
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
+  const [scanning, setScanning] = useState(false)
 
   const { data: summary } = useQuery({
     queryKey: ['summary'],
     queryFn: dashboardApi.summary,
   })
+
   const { data: repos, isLoading } = useQuery({
     queryKey: ['repos'],
-    queryFn: reposApi.list,
+    queryFn: () => reposApi.list(),
+    refetchInterval: scanning ? 4000 : false,
+    onSuccess: (data) => {
+      if (scanning && data.every((r) => r.health_score !== null)) {
+        setScanning(false)
+        queryClient.invalidateQueries({ queryKey: ['summary'] })
+        toast.success('All repos scanned!')
+      }
+    },
   })
 
   const sync = useMutation({
     mutationFn: reposApi.sync,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['repos'] }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['repos'] })
+      toast.success(`Synced ${data.synced} repos`)
+    },
+    onError: () => toast.error('Sync failed — try again'),
+  })
+
+  const scanAll = useMutation({
+    mutationFn: reposApi.scanAll,
+    onSuccess: () => {
+      setScanning(true)
+      toast.success('Scanning all repos…')
+    },
+    onError: () => toast.error('Scan failed — try again'),
   })
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-green-400" />
           <span className="font-bold text-lg">makesurenew</span>
         </div>
         <div className="flex items-center gap-4">
@@ -38,10 +63,10 @@ export default function Dashboard() {
               <span>{user.username}</span>
             </div>
           )}
-          <button
-            onClick={logout}
-            className="text-gray-500 hover:text-gray-300 transition-colors"
-          >
+          <Link to="/settings" className="text-gray-500 hover:text-gray-300 transition-colors">
+            <Settings className="w-5 h-5" />
+          </Link>
+          <button onClick={logout} className="text-gray-500 hover:text-gray-300 transition-colors">
             <LogOut className="w-5 h-5" />
           </button>
         </div>
@@ -68,15 +93,32 @@ export default function Dashboard() {
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Your Repositories</h2>
-          <button
-            onClick={() => sync.mutate()}
-            disabled={sync.isPending}
-            className="flex items-center gap-2 text-sm bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${sync.isPending ? 'animate-spin' : ''}`} />
-            Sync repos
-          </button>
+          <h2 className="text-lg font-semibold">
+            Your Repositories
+            {scanning && (
+              <span className="ml-3 text-xs text-yellow-400 animate-pulse font-normal">
+                scanning…
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => scanAll.mutate()}
+              disabled={scanAll.isPending || scanning}
+              className="flex items-center gap-2 text-sm bg-green-800 hover:bg-green-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <ScanLine className={`w-4 h-4 ${scanning ? 'animate-pulse' : ''}`} />
+              Scan all
+            </button>
+            <button
+              onClick={() => sync.mutate()}
+              disabled={sync.isPending}
+              className="flex items-center gap-2 text-sm bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${sync.isPending ? 'animate-spin' : ''}`} />
+              Sync repos
+            </button>
+          </div>
         </div>
 
         {isLoading ? (

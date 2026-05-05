@@ -7,17 +7,22 @@ import { reposApi } from '../api/client'
 
 const FIX_LINKS: Record<string, (fullName: string) => string> = {
   has_readme:          (r) => `https://github.com/${r}/new/main?filename=README.md`,
-  has_license:         (r) => `https://github.com/${r}/community/license/new`,
   has_ci:              (r) => `https://github.com/${r}/new/main?filename=.github%2Fworkflows%2Fci.yml`,
-  has_gitignore:       (r) => `https://github.com/${r}/new/main?filename=.gitignore`,
+  has_tests:           (r) => `https://github.com/${r}/new/main?filename=tests%2F.gitkeep`,
+  has_license:         (r) => `https://github.com/${r}/community/license/new`,
+  has_dependabot:      (r) => `https://github.com/${r}/new/main?filename=.github%2Fdependabot.yml`,
   has_security_policy: (r) => `https://github.com/${r}/security/policy`,
   has_contributing:    (r) => `https://github.com/${r}/new/main?filename=CONTRIBUTING.md`,
-  has_code_of_conduct: (r) => `https://github.com/${r}/community/code-of-conduct/new`,
-  has_dependabot:      (r) => `https://github.com/${r}/new/main?filename=.github%2Fdependabot.yml`,
+  has_linter:          (r) => `https://github.com/${r}/new/main?filename=.eslintrc.json`,
+  has_releases:        (r) => `https://github.com/${r}/releases/new`,
+  has_topics:          (r) => `https://github.com/${r}`,
+  has_description:     (r) => `https://github.com/${r}`,
   has_changelog:       (r) => `https://github.com/${r}/new/main?filename=CHANGELOG.md`,
   has_issue_templates: (r) => `https://github.com/${r}/issues/templates/edit`,
   has_pr_template:     (r) => `https://github.com/${r}/new/main?filename=.github%2Fpull_request_template.md`,
-  has_description:     (r) => `https://github.com/${r}`,
+  has_gitignore:       (r) => `https://github.com/${r}/new/main?filename=.gitignore`,
+  has_env_example:     (r) => `https://github.com/${r}/new/main?filename=.env.example`,
+  has_code_of_conduct: (r) => `https://github.com/${r}/community/code-of-conduct/new`,
 }
 
 const BADGE_BASE = 'https://makesurenew.onrender.com'

@@ -13,6 +13,11 @@ const FIX_LINKS: Record<string, (fullName: string) => string> = {
   has_security_policy: (r) => `https://github.com/${r}/security/policy`,
   has_contributing:    (r) => `https://github.com/${r}/new/main?filename=CONTRIBUTING.md`,
   has_code_of_conduct: (r) => `https://github.com/${r}/community/code-of-conduct/new`,
+  has_dependabot:      (r) => `https://github.com/${r}/new/main?filename=.github%2Fdependabot.yml`,
+  has_changelog:       (r) => `https://github.com/${r}/new/main?filename=CHANGELOG.md`,
+  has_issue_templates: (r) => `https://github.com/${r}/issues/templates/edit`,
+  has_pr_template:     (r) => `https://github.com/${r}/new/main?filename=.github%2Fpull_request_template.md`,
+  has_description:     (r) => `https://github.com/${r}`,
 }
 
 const BADGE_BASE = 'https://makesurenew.onrender.com'

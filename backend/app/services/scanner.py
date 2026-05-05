@@ -8,26 +8,37 @@ from ..database import SessionLocal
 from ..models import Repository, ScanHistory, User
 from .notifier import notify_score_drop
 
+# Weights sum to 100 — score equals percentage directly
 CHECKS = {
-    "has_readme":           25,
-    "has_ci":               20,
-    "has_license":          15,
-    "has_security_policy":  10,
-    "has_contributing":     10,
-    "has_recent_commits":   10,
-    "has_gitignore":         5,
-    "has_code_of_conduct":   5,
+    "has_readme":           20,
+    "has_ci":               15,
+    "has_license":          10,
+    "has_dependabot":        8,
+    "has_security_policy":   8,
+    "has_recent_commits":    8,
+    "has_contributing":      7,
+    "has_description":       5,
+    "has_changelog":         5,
+    "has_gitignore":         4,
+    "has_issue_templates":   4,
+    "has_pr_template":       3,
+    "has_code_of_conduct":   3,
 }
 
 MESSAGES = {
-    "has_readme":          "Missing README.md — add one to describe your project",
-    "has_license":         "No LICENSE file — add one to clarify usage rights",
-    "has_ci":              "No CI workflow — add GitHub Actions to automate testing",
-    "has_gitignore":       "No .gitignore — avoid committing unwanted files",
-    "has_security_policy": "No SECURITY.md — document how to report vulnerabilities",
-    "has_contributing":    "No CONTRIBUTING.md — help contributors get started",
-    "has_recent_commits":  "No commits in 90 days — consider archiving or updating",
-    "has_code_of_conduct": "No CODE_OF_CONDUCT.md — add one to set community standards",
+    "has_readme":           "Missing README.md — add one to describe your project",
+    "has_license":          "No LICENSE file — add one to clarify usage rights",
+    "has_ci":               "No CI workflow — add GitHub Actions to automate testing",
+    "has_gitignore":        "No .gitignore — avoid committing unwanted files",
+    "has_security_policy":  "No SECURITY.md — document how to report vulnerabilities",
+    "has_contributing":     "No CONTRIBUTING.md — help contributors get started",
+    "has_recent_commits":   "No commits in 90 days — consider archiving or updating",
+    "has_code_of_conduct":  "No CODE_OF_CONDUCT.md — add one to set community standards",
+    "has_dependabot":       "No Dependabot config — add .github/dependabot.yml to automate dependency updates",
+    "has_description":      "No repository description — add one so people understand the project at a glance",
+    "has_changelog":        "No CHANGELOG.md — document your release history for users and contributors",
+    "has_issue_templates":  "No issue templates — add .github/ISSUE_TEMPLATE to guide bug reports and feature requests",
+    "has_pr_template":      "No PR template — add .github/pull_request_template.md to standardize contributions",
 }
 
 
@@ -46,7 +57,8 @@ async def _run_checks(full_name: str, token: str) -> dict[str, bool]:
         (
             readme_status, license_status, ci_resp,
             gitignore_status, security_status, contributing_status,
-            coc_status, commits_resp,
+            coc_status, commits_resp, dependabot_status,
+            changelog_status, issue_tmpl_resp, pr_tmpl_status, repo_resp,
         ) = await asyncio.gather(
             get(client, f"{base}/readme"),
             get(client, f"{base}/license"),
@@ -56,10 +68,18 @@ async def _run_checks(full_name: str, token: str) -> dict[str, bool]:
             get(client, f"{base}/contents/CONTRIBUTING.md"),
             get(client, f"{base}/contents/CODE_OF_CONDUCT.md"),
             client.get(f"{base}/commits?per_page=1&since={_since_iso()}", headers=headers),
+            get(client, f"{base}/contents/.github/dependabot.yml"),
+            get(client, f"{base}/contents/CHANGELOG.md"),
+            client.get(f"{base}/contents/.github/ISSUE_TEMPLATE", headers=headers),
+            get(client, f"{base}/contents/.github/pull_request_template.md"),
+            client.get(base, headers=headers),
         )
 
     ci_data = ci_resp.json() if ci_resp.status_code == 200 else []
     commits_data = commits_resp.json() if commits_resp.status_code == 200 else []
+    issue_tmpl_data = issue_tmpl_resp.json() if issue_tmpl_resp.status_code == 200 else []
+    repo_data = repo_resp.json() if repo_resp.status_code == 200 else {}
+
     return {
         "has_readme":           readme_status == 200,
         "has_license":          license_status == 200,
@@ -69,6 +89,11 @@ async def _run_checks(full_name: str, token: str) -> dict[str, bool]:
         "has_contributing":     contributing_status == 200,
         "has_code_of_conduct":  coc_status == 200,
         "has_recent_commits":   isinstance(commits_data, list) and len(commits_data) > 0,
+        "has_dependabot":       dependabot_status == 200,
+        "has_changelog":        changelog_status == 200,
+        "has_issue_templates":  isinstance(issue_tmpl_data, list) and len(issue_tmpl_data) > 0,
+        "has_pr_template":      pr_tmpl_status == 200,
+        "has_description":      bool(repo_data.get("description")),
     }
 
 
@@ -86,7 +111,7 @@ def _score(checks: dict[str, bool]) -> tuple[int, list[dict]]:
         else:
             issues.append({
                 "check": check,
-                "severity": "high" if weight >= 20 else "medium",
+                "severity": "high" if weight >= 10 else "medium",
                 "message": MESSAGES.get(check, check),
             })
     return score, issues

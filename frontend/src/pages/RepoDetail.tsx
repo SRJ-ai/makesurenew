@@ -11,15 +11,16 @@ export default function RepoDetail() {
   const { id } = useParams<{ id: string }>()
   const repoId = Number(id)
   const queryClient = useQueryClient()
-  const [isScanning, setIsScanning] = useState(false)
+  // ISO timestamp captured the moment "Scan now" is clicked; null = not scanning
+  const [scanTriggeredAt, setScanTriggeredAt] = useState<string | null>(null)
 
   const { data: repo, isLoading } = useQuery({
     queryKey: ['repo', repoId],
     queryFn: () => reposApi.get(repoId),
-    refetchInterval: isScanning ? 3000 : false,
+    refetchInterval: scanTriggeredAt ? 3000 : false,
     onSuccess: (data) => {
-      if (isScanning && data.last_scanned_at) {
-        setIsScanning(false)
+      if (scanTriggeredAt && data.last_scanned_at && data.last_scanned_at > scanTriggeredAt) {
+        setScanTriggeredAt(null)
         queryClient.invalidateQueries({ queryKey: ['repos'] })
         toast.success('Scan complete!')
       }
@@ -28,7 +29,7 @@ export default function RepoDetail() {
 
   const scan = useMutation({
     mutationFn: () => reposApi.scan(repoId),
-    onSuccess: () => setIsScanning(true),
+    onSuccess: () => setScanTriggeredAt(new Date().toISOString()),
     onError: () => toast.error('Scan failed — try again'),
   })
 
@@ -86,11 +87,11 @@ export default function RepoDetail() {
             </button>
             <button
               onClick={() => scan.mutate()}
-              disabled={scan.isPending || isScanning}
+              disabled={scan.isPending || scanTriggeredAt}
               className="flex items-center gap-2 bg-green-700 hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
-              <Scan className={`w-4 h-4 ${isScanning ? 'animate-pulse' : ''}`} />
-              {isScanning ? 'Scanning…' : 'Scan now'}
+              <Scan className={`w-4 h-4 ${scanTriggeredAt ? 'animate-pulse' : ''}`} />
+              {scanTriggeredAt ? 'Scanning…' : 'Scan now'}
             </button>
           </div>
         </div>
@@ -163,7 +164,7 @@ export default function RepoDetail() {
           </div>
         )}
 
-        {repo.health_score == null && !isScanning && (
+        {repo.health_score == null && !scanTriggeredAt && (
           <div className="text-center py-12 bg-gray-900 rounded-xl">
             <p className="text-gray-500 mb-4">This repo hasn't been scanned yet.</p>
             <button
@@ -175,7 +176,7 @@ export default function RepoDetail() {
           </div>
         )}
 
-        {isScanning && (
+        {scanTriggeredAt && (
           <div className="text-center py-8 text-yellow-400 text-sm animate-pulse">
             Scan in progress — results will appear automatically…
           </div>

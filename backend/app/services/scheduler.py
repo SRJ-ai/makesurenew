@@ -20,15 +20,17 @@ async def _rescan_stale_repos() -> None:
     db: Session = SessionLocal()
     try:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=_RESCAN_AFTER_HOURS)
-        stale = (
+        rows = (
             db.query(Repository, User)
             .join(User, Repository.owner_id == User.id)
             .filter(
                 (Repository.last_scanned_at == None) |  # noqa: E711
                 (Repository.last_scanned_at < cutoff)
             )
-            .all()
+            .yield_per(100)
         )
+        # Snapshot only the IDs and tokens we need; avoids keeping ORM objects alive
+        stale = [(repo.id, user.access_token) for repo, user in rows]
     finally:
         db.close()
 
@@ -45,7 +47,7 @@ async def _rescan_stale_repos() -> None:
             except Exception:
                 logger.exception("Scheduler: scan failed for repo_id=%d", repo_id)
 
-    await asyncio.gather(*[_bounded(repo.id, user.access_token) for repo, user in stale])
+    await asyncio.gather(*[_bounded(repo_id, token) for repo_id, token in stale])
 
 
 def start_scheduler() -> None:

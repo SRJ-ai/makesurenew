@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 
 import httpx
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..database import SessionLocal
 from ..models import Repository, User
@@ -73,8 +73,7 @@ async def _run_checks(full_name: str, token: str) -> dict[str, bool]:
 
 
 def _since_iso() -> str:
-    cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-    return cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _score(checks: dict[str, bool]) -> tuple[int, list[dict]]:
@@ -96,21 +95,23 @@ def _score(checks: dict[str, bool]) -> tuple[int, list[dict]]:
 async def scan_repository(repo_id: int, access_token: str) -> None:
     db: Session = SessionLocal()
     try:
-        repo = db.query(Repository).filter(Repository.id == repo_id).first()
+        repo = (
+            db.query(Repository)
+            .options(joinedload(Repository.owner))
+            .filter(Repository.id == repo_id)
+            .first()
+        )
         if not repo:
             return
         old_score = repo.health_score
         checks = await _run_checks(repo.full_name, access_token)
         score, issues = _score(checks)
         repo.health_score = score
-        repo.last_scanned_at = datetime.utcnow()
+        repo.last_scanned_at = datetime.now(timezone.utc)
         repo.scan_results = {"checks": checks, "issues": issues}
         db.commit()
-        db.refresh(repo)
 
         if old_score is not None and score <= old_score - 10:
-            user = db.query(User).filter(User.id == repo.owner_id).first()
-            if user:
-                await notify_score_drop(user, repo, old_score, score)
+            await notify_score_drop(repo.owner, repo, old_score, score)
     finally:
         db.close()

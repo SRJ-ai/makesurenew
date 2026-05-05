@@ -10,7 +10,8 @@ import { useAuth } from '../hooks/useAuth'
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
-  const [scanning, setScanning] = useState(false)
+  // IDs of repos that had no score when "Scan all" was clicked
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
 
   const { data: summary } = useQuery({
     queryKey: ['summary'],
@@ -20,10 +21,12 @@ export default function Dashboard() {
   const { data: repos, isLoading } = useQuery({
     queryKey: ['repos'],
     queryFn: () => reposApi.list(),
-    refetchInterval: scanning ? 4000 : false,
+    refetchInterval: pendingIds.size > 0 ? 4000 : false,
     onSuccess: (data) => {
-      if (scanning && data.every((r) => r.health_score !== null)) {
-        setScanning(false)
+      if (pendingIds.size === 0) return
+      const stillPending = data.some((r) => pendingIds.has(r.id) && r.health_score === null)
+      if (!stillPending) {
+        setPendingIds(new Set())
         queryClient.invalidateQueries({ queryKey: ['summary'] })
         toast.success('All repos scanned!')
       }
@@ -42,7 +45,9 @@ export default function Dashboard() {
   const scanAll = useMutation({
     mutationFn: reposApi.scanAll,
     onSuccess: () => {
-      setScanning(true)
+      // Snapshot repos that need pendingIds.size > 0 so polling stops precisely when they're done
+      const nullIds = new Set((repos ?? []).filter((r) => r.health_score === null).map((r) => r.id))
+      setPendingIds(nullIds.size > 0 ? nullIds : new Set((repos ?? []).map((r) => r.id)))
       toast.success('Scanning all repos…')
     },
     onError: () => toast.error('Scan failed — try again'),
@@ -95,19 +100,19 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">
             Your Repositories
-            {scanning && (
+            {pendingIds.size > 0 && (
               <span className="ml-3 text-xs text-yellow-400 animate-pulse font-normal">
-                scanning…
+                pendingIds.size > 0…
               </span>
             )}
           </h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => scanAll.mutate()}
-              disabled={scanAll.isPending || scanning}
+              disabled={scanAll.isPending || pendingIds.size > 0}
               className="flex items-center gap-2 text-sm bg-green-800 hover:bg-green-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
             >
-              <ScanLine className={`w-4 h-4 ${scanning ? 'animate-pulse' : ''}`} />
+              <ScanLine className={`w-4 h-4 ${pendingIds.size > 0 ? 'animate-pulse' : ''}`} />
               Scan all
             </button>
             <button

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import smtplib
 from email.mime.text import MIMEText
@@ -35,11 +36,15 @@ Unsubscribe: {settings.frontend_url}/settings
     msg["From"] = settings.smtp_from
     msg["To"] = user.email
 
+    await asyncio.to_thread(_send_smtp, msg)
+
+
+def _send_smtp(msg: MIMEText) -> None:
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
+            smtp.starttls()
             if settings.smtp_user:
-                smtp.starttls()
                 smtp.login(settings.smtp_user, settings.smtp_password)
             smtp.send_message(msg)
     except Exception:
-        logger.exception("Failed to send score-drop email to %s", user.email)
+        logger.exception("Failed to send score-drop email to %s", msg["To"])

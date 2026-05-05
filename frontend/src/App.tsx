@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'
 import AuthCallback from './pages/AuthCallback'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
+import Pricing from './pages/Pricing'
 import RepoDetail from './pages/RepoDetail'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/pricing" element={<Pricing />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/dashboard"

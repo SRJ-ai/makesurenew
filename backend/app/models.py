@@ -16,6 +16,13 @@ class User(Base):
     access_token = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Subscription / billing
+    plan = Column(String, default="free")           # "free" | "pro" | "team"
+    stripe_customer_id = Column(String, nullable=True, unique=True)
+    subscription_ends_at = Column(DateTime(timezone=True), nullable=True)
+    repos_limit = Column(Integer, default=5)        # free=5, pro=unlimited(-1), team=-1
+    api_key = Column(String, nullable=True, unique=True, index=True)
+
     repos = relationship("Repository", back_populates="owner")
 
 

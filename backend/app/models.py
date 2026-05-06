@@ -50,6 +50,10 @@ class Repository(Base):
         passive_deletes=True,
     )
 
+    __table_args__ = (
+        Index("ix_repo_owner_score", "owner_id", "health_score"),
+    )
+
 
 class ScanHistory(Base):
     __tablename__ = "scan_history"
@@ -63,7 +67,4 @@ class ScanHistory(Base):
 
     __table_args__ = (
         Index("ix_scan_history_repo_time", "repository_id", "scanned_at"),
-
-    __table_args__ = (
-        Index("ix_repo_owner_score", "owner_id", "health_score"),
     )

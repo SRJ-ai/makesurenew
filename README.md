@@ -42,6 +42,7 @@ makesurenew scans your GitHub repositories against a set of best practices and g
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
+5. **Trigger a deploy** — Render builds the Docker image, copies the frontend, and starts the server.
 1. **Fork this repo**
 
 2. **Create a GitHub OAuth App** at [github.com/settings/developers](https://github.com/settings/developers):
@@ -69,7 +70,36 @@ cp .env.example .env
 docker compose up
 ```
 
+Open **http://localhost:5173** → sign in with GitHub → sync your repos.
+
+---
+
+## How scoring works
+
+35 checks run in parallel via GitHub API. Weights sum to 100 — the score is a direct percentage.
+
+| Category | Checks | Max pts |
+|---|---|---|
+| **Critical** | README · CI · Tests · License · CI passing | 38 |
+| **Security** | Dependabot · Security policy · Lock file · Type checking | 18 |
+| **Maintainability** | Recent commits · Contributing · CODEOWNERS · Linter · Formatter · Docker | 17 |
+| **Discoverability** | Releases · Topics · Dev container · Makefile · Good first issues · API docs | 12 |
+| **Polish** | Issue templates · PR template · .gitignore · .env.example · pre-commit · SUPPORT · Description · CHANGELOG · Docs · CoC · Stale bot · FUNDING · Homepage · Scorecard | 14 |
+
+- **80–100** — Healthy
+- **50–79** — Needs attention
+- **0–49** — Critical
 Open **http://localhost:5173**
+
+Each failing check includes a direct link to fix it on GitHub.
+
+---
+
+## Automation
+
+- **Auto-rescan every 6 hours** via APScheduler
+- **Instant rescan on git push** via GitHub webhook (`POST /api/github/webhook`)
+- **Email alerts** when a repo's score drops 10+ points
 
 ---
 
@@ -80,6 +110,8 @@ Open **http://localhost:5173**
 | Backend | Python 3.12 · FastAPI · PostgreSQL · SQLAlchemy |
 | Frontend | React 18 · TypeScript · Vite · Tailwind CSS |
 | Auth | GitHub OAuth2 · JWT |
+| Automation | APScheduler · GitHub Webhooks |
+| Deploy | Docker · Render.com |
 | Deploy | Docker · Render.com · GitHub Pages (demo) |
 
 ---
@@ -111,6 +143,8 @@ makesurenew/
 
 ## Contributing
 
+PRs are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions.
+Check the [open issues](../../issues) — `good first issue` labels are great starting points.
 Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) to get started.
 
 - [`good first issue`](../../issues?q=is%3Aopen+label%3A%22good+first+issue%22) — great for newcomers

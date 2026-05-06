@@ -1,4 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, ChevronDown, ChevronUp, LogOut, RefreshCw, ScanLine, Search, Settings } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 import { AlertCircle, LogOut, RefreshCw, Search, ShieldCheck, ScanLine } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
@@ -7,9 +11,28 @@ import { SkeletonCard, SkeletonStat } from '../components/SkeletonCard'
 import RepoCard from '../components/RepoCard'
 import { useAuth } from '../hooks/useAuth'
 
+const CHECK_LABELS: Record<string, string> = {
+  has_readme: 'README', has_ci: 'CI workflow', has_tests: 'Tests', has_license: 'License',
+  ci_passing: 'CI passing', has_dependabot: 'Dependabot', has_security_policy: 'Security policy',
+  has_lock_file: 'Lock file', has_type_checking: 'Type checking', has_recent_commits: 'Recent commits',
+  has_contributing: 'CONTRIBUTING', has_codeowners: 'CODEOWNERS', has_linter: 'Linter',
+  has_formatter: 'Formatter', has_docker: 'Dockerfile', has_releases: 'Releases',
+  has_topics: 'Topics', has_devcontainer: 'Dev container', has_makefile: 'Makefile',
+  has_good_first_issue: 'Good first issues', has_api_docs: 'API docs',
+  has_issue_templates: 'Issue templates', has_pr_template: 'PR template',
+  has_gitignore: '.gitignore', has_env_example: '.env.example', has_pre_commit: 'Pre-commit hooks',
+  has_support: 'SUPPORT', has_description: 'Description', has_changelog: 'Changelog',
+  has_docs: 'Docs folder', has_code_of_conduct: 'Code of conduct', has_stale_bot: 'Stale bot',
+  has_funding: 'FUNDING', has_homepage: 'Homepage', has_scorecard: 'OSSF Scorecard',
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<'name' | 'score' | 'scanned'>('name')
+  const [expandedIssue, setExpandedIssue] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<'name' | 'score' | 'scanned'>('name')
 
@@ -18,6 +41,15 @@ export default function Dashboard() {
     queryFn: dashboardApi.summary,
   })
 
+  const { data: topIssues } = useQuery({
+    queryKey: ['top-issues'],
+    queryFn: () => dashboardApi.topIssues(8),
+  })
+
+  const { data: repos, isLoading } = useQuery({
+    queryKey: ['repos', search, sort],
+    queryFn: () => reposApi.list({ q: search || undefined, sort }),
+    refetchInterval: pendingIds.size > 0 ? 4000 : false,
   const {
     data: repos,
     isLoading: reposLoading,
@@ -27,10 +59,24 @@ export default function Dashboard() {
     queryFn: () => reposApi.list({ q: search, sort }),
   })
 
+  useEffect(() => {
+    if (pendingIds.size === 0 || !repos) return
+    const stillPending = repos.some((r) => pendingIds.has(r.id) && r.health_score === null)
+    if (!stillPending) {
+      setPendingIds(new Set())
+      queryClient.invalidateQueries({ queryKey: ['summary'] })
+      queryClient.invalidateQueries({ queryKey: ['top-issues'] })
+      toast.success('All repos scanned!')
+    }
+  }, [repos, pendingIds, queryClient])
+
   const sync = useMutation({
     mutationFn: reposApi.sync,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['repos'] })
+      toast.success(`Synced ${data.synced} repos`)
+    },
+    onError: () => toast.error('Sync failed — try again'),
       queryClient.invalidateQueries({ queryKey: ['summary'] })
       toast.success(`Synced ${data.synced} repositories`)
     },
@@ -39,6 +85,12 @@ export default function Dashboard() {
 
   const scanAll = useMutation({
     mutationFn: reposApi.scanAll,
+    onSuccess: () => {
+      const nullIds = new Set((repos ?? []).filter((r) => r.health_score === null).map((r) => r.id))
+      setPendingIds(nullIds.size > 0 ? nullIds : new Set((repos ?? []).map((r) => r.id)))
+      toast.success('Scanning all repos…')
+    },
+    onError: () => toast.error('Scan failed — try again'),
     onSuccess: (data) => toast.success(`Scanning ${data.count} repos in the background`),
     onError: () => toast.error('Scan failed — please try again'),
   })
@@ -47,7 +99,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-950 text-white">
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-green-400" />
           <span className="font-bold text-lg">makesurenew</span>
         </div>
         <div className="flex items-center gap-4">
@@ -59,6 +110,10 @@ export default function Dashboard() {
               <span>{user.username}</span>
             </div>
           )}
+          <Link to="/settings" className="text-gray-500 hover:text-gray-300 transition-colors">
+            <Settings className="w-5 h-5" />
+          </Link>
+          <button onClick={logout} className="text-gray-500 hover:text-gray-300 transition-colors">
           <button
             onClick={logout}
             aria-label="Log out"
@@ -87,6 +142,63 @@ export default function Dashboard() {
               ))}
         </div>
 
+        {topIssues && topIssues.length > 0 && (
+          <div className="bg-gray-900 rounded-xl p-6 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0" />
+              <h2 className="font-semibold">Most common issues across your repos</h2>
+            </div>
+            <div className="space-y-3">
+              {topIssues.map((issue) => {
+                const pct = Math.round((issue.failing_count / issue.total_scanned) * 100)
+                const isExpanded = expandedIssue === issue.check
+                const barColor = pct >= 80 ? 'bg-red-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-orange-400'
+                return (
+                  <div key={issue.check}>
+                    <button
+                      className="w-full text-left"
+                      onClick={() => setExpandedIssue(isExpanded ? null : issue.check)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-300 w-40 shrink-0 truncate">
+                          {CHECK_LABELS[issue.check] ?? issue.check}
+                        </span>
+                        <div className="flex-1 bg-gray-800 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${barColor}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-400 w-20 text-right shrink-0">
+                          {issue.failing_count}/{issue.total_scanned} repos
+                        </span>
+                        {isExpanded
+                          ? <ChevronUp className="w-4 h-4 text-gray-500 shrink-0" />
+                          : <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
+                        }
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="mt-2 ml-[11.5rem] flex flex-wrap gap-2">
+                        {issue.repos.map((r) => (
+                          <Link
+                            key={r.id}
+                            to={`/repos/${r.id}`}
+                            className="text-xs bg-gray-800 hover:bg-gray-700 text-blue-400 hover:text-blue-300 px-2 py-1 rounded transition-colors"
+                          >
+                            {r.full_name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         {/* Controls */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
@@ -96,12 +208,48 @@ export default function Dashboard() {
               placeholder="Search repositories…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
               className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gray-600"
             />
           </div>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as typeof sort)}
+            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-gray-500"
+          >
+            <option value="name">Sort: Name</option>
+            <option value="score">Sort: Score</option>
+            <option value="scanned">Sort: Last scanned</option>
+          </select>
+        </div>
+
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            Your Repositories
+            {pendingIds.size > 0 && (
+              <span className="ml-3 text-xs text-yellow-400 animate-pulse font-normal">
+                Scanning…
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => scanAll.mutate()}
+              disabled={scanAll.isPending || pendingIds.size > 0}
+              className="flex items-center gap-2 text-sm bg-green-800 hover:bg-green-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <ScanLine className={`w-4 h-4 ${pendingIds.size > 0 ? 'animate-pulse' : ''}`} />
+              Scan all
+            </button>
+            <button
+              onClick={() => sync.mutate()}
+              disabled={sync.isPending}
+              className="flex items-center gap-2 text-sm bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${sync.isPending ? 'animate-spin' : ''}`} />
+              Sync repos
+            </button>
+          </div>
             className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-gray-600"
           >
             <option value="name">Sort: Name</option>

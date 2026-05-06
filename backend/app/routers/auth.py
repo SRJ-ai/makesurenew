@@ -44,7 +44,7 @@ def github_login():
 
 @router.get("/callback")
 async def github_callback(code: str, db: Session = Depends(get_db)):
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         token_resp = await client.post(
             "https://github.com/login/oauth/access_token",
             json={
@@ -58,7 +58,7 @@ async def github_callback(code: str, db: Session = Depends(get_db)):
     if not github_token:
         raise HTTPException(status_code=400, detail="GitHub OAuth failed")
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         user_resp = await client.get(
             "https://api.github.com/user",
             headers={"Authorization": f"Bearer {github_token}"},

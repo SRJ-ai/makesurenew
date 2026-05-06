@@ -21,6 +21,8 @@ export interface User {
   username: string
   email: string | null
   avatar_url: string | null
+  api_key?: string | null
+  email_notifications?: boolean
 }
 
 export interface Repo {

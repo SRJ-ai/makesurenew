@@ -16,6 +16,14 @@ class User(Base):
     access_token = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Subscription / billing
+    plan = Column(String, default="free")           # "free" | "pro" | "team"
+    stripe_customer_id = Column(String, nullable=True, unique=True)
+    subscription_ends_at = Column(DateTime(timezone=True), nullable=True)
+    repos_limit = Column(Integer, default=5)        # free=5, pro=unlimited(-1), team=-1
+    api_key = Column(String, nullable=True, unique=True, index=True)
+    email_notifications = Column(Boolean, default=False)
+
     repos = relationship("Repository", back_populates="owner")
 
 
@@ -35,6 +43,26 @@ class Repository(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="repos")
+    history = relationship(
+        "ScanHistory",
+        back_populates="repository",
+        order_by="ScanHistory.scanned_at.desc()",
+        passive_deletes=True,
+    )
+
+
+class ScanHistory(Base):
+    __tablename__ = "scan_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    repository_id = Column(Integer, ForeignKey("repositories.id", ondelete="CASCADE"), index=True)
+    health_score = Column(Integer, nullable=False)
+    scanned_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    repository = relationship("Repository", back_populates="history")
+
+    __table_args__ = (
+        Index("ix_scan_history_repo_time", "repository_id", "scanned_at"),
 
     __table_args__ = (
         Index("ix_repo_owner_score", "owner_id", "health_score"),

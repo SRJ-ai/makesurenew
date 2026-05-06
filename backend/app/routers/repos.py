@@ -3,12 +3,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Repository
+from ..models import Repository, ScanHistory
 from ..routers.auth import get_current_user
-from ..schemas import RepoOut
+from ..schemas import RepoOut, ScanHistoryOut
 from ..services.scanner import scan_repository
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/", response_model=list[RepoOut])
@@ -38,9 +39,10 @@ def list_repos(
 
 
 @router.post("/sync")
-async def sync_repos(token: str, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def sync_repos(request: Request, token: str, db: Session = Depends(get_db)):
     user = get_current_user(token, db)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.get(
             "https://api.github.com/user/repos?per_page=100&sort=updated",
             headers={"Authorization": f"Bearer {user.access_token}"},
@@ -88,7 +90,9 @@ async def scan_all_repos(
 
 
 @router.post("/{repo_id}/scan")
+@limiter.limit("20/minute")
 async def trigger_scan(
+    request: Request,
     repo_id: int,
     token: str,
     background_tasks: BackgroundTasks,
@@ -113,3 +117,20 @@ def get_repo(repo_id: int, token: str, db: Session = Depends(get_db)):
     if not repo:
         raise HTTPException(status_code=404, detail="Repo not found")
     return repo
+
+
+@router.get("/{repo_id}/history", response_model=list[ScanHistoryOut])
+def get_repo_history(repo_id: int, token: str, db: Session = Depends(get_db)):
+    user = get_current_user(token, db)
+    repo = db.query(Repository).filter(
+        Repository.id == repo_id, Repository.owner_id == user.id
+    ).first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repo not found")
+    return (
+        db.query(ScanHistory)
+        .filter(ScanHistory.repository_id == repo_id)
+        .order_by(ScanHistory.scanned_at.desc())
+        .limit(30)
+        .all()
+    )

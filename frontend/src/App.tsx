@@ -4,7 +4,9 @@ import { useAuth } from './hooks/useAuth'
 import AuthCallback from './pages/AuthCallback'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
+import Pricing from './pages/Pricing'
 import RepoDetail from './pages/RepoDetail'
+import Settings from './pages/Settings'
 
 export default function App() {
   const { isAuthenticated } = useAuth()
@@ -13,6 +15,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/settings" element={authed ? <Settings /> : <Navigate to="/login" replace />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/dashboard"

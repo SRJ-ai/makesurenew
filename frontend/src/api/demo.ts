@@ -1,5 +1,4 @@
 import type { DashboardSummary, ListReposParams, Repo, ScanHistoryEntry, TopIssue, User } from './client'
-import type { DashboardSummary, ListReposParams, Repo, User } from './client'
 
 export const DEMO_USER: User = {
   id: 1,
@@ -93,13 +92,6 @@ export const DEMO_REPOS: Repo[] = [
     health_score: 100,
     last_scanned_at: new Date().toISOString(),
     scan_results: { checks: ALL_PASS, issues: [] },
-    scan_results: {
-      checks: {
-        has_readme: true, has_license: true, has_ci: true,
-        has_gitignore: true, has_security_policy: true, has_contributing: true,
-      },
-      issues: [],
-    },
   },
   {
     id: 2,
@@ -139,18 +131,6 @@ export const DEMO_REPOS: Repo[] = [
         has_changelog:        { sev: 'medium', msg: 'No CHANGELOG.md — document your release history' },
         has_scorecard:        { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to continuously track security posture' },
       }),
-    health_score: 60,
-    last_scanned_at: new Date().toISOString(),
-    scan_results: {
-      checks: {
-        has_readme: true, has_license: false, has_ci: false,
-        has_gitignore: true, has_security_policy: false, has_contributing: true,
-      },
-      issues: [
-        { check: 'has_license', severity: 'high', message: 'No LICENSE file — add one to clarify usage rights' },
-        { check: 'has_ci', severity: 'high', message: 'No CI workflow — add GitHub Actions to automate testing' },
-        { check: 'has_security_policy', severity: 'medium', message: 'No SECURITY.md — document how to report vulnerabilities' },
-      ],
     },
   },
   {
@@ -193,16 +173,6 @@ export const DEMO_REPOS: Repo[] = [
         has_docker:           { sev: 'medium', msg: 'No Dockerfile — containerise so contributors can run the project without manual setup' },
         has_scorecard:        { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to continuously track security posture' },
       }),
-        has_readme: false, has_license: false, has_ci: false,
-        has_gitignore: true, has_security_policy: false, has_contributing: false,
-      },
-      issues: [
-        { check: 'has_readme', severity: 'high', message: 'Missing README.md — add one to describe your project' },
-        { check: 'has_license', severity: 'high', message: 'No LICENSE file — add one to clarify usage rights' },
-        { check: 'has_ci', severity: 'high', message: 'No CI workflow — add GitHub Actions to automate testing' },
-        { check: 'has_security_policy', severity: 'medium', message: 'No SECURITY.md — document how to report vulnerabilities' },
-        { check: 'has_contributing', severity: 'medium', message: 'No CONTRIBUTING.md — help contributors get started' },
-      ],
     },
   },
   {
@@ -235,15 +205,6 @@ export const DEMO_REPOS: Repo[] = [
         has_changelog:        { sev: 'medium', msg: 'No CHANGELOG.md — document your release history' },
         has_scorecard:        { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to continuously track security posture' },
       }),
-        has_readme: true, has_license: false, has_ci: false,
-        has_gitignore: true, has_security_policy: false, has_contributing: false,
-      },
-      issues: [
-        { check: 'has_license', severity: 'high', message: 'No LICENSE file — add one to clarify usage rights' },
-        { check: 'has_ci', severity: 'high', message: 'No CI workflow — add GitHub Actions to automate testing' },
-        { check: 'has_security_policy', severity: 'medium', message: 'No SECURITY.md — document how to report vulnerabilities' },
-        { check: 'has_contributing', severity: 'medium', message: 'No CONTRIBUTING.md — help contributors get started' },
-      ],
     },
   },
   {
@@ -259,15 +220,6 @@ export const DEMO_REPOS: Repo[] = [
 ]
 
 const delay = (ms = 400) => new Promise<void>((r) => setTimeout(r, ms))
-export const DEMO_SUMMARY: DashboardSummary = {
-  total_repos: DEMO_REPOS.length,
-  scanned_repos: DEMO_REPOS.filter((r) => r.health_score !== null).length,
-  average_health_score: 60,
-  healthy: 1,
-  needs_attention: 3,
-}
-
-const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms))
 
 export const demoAuthApi = {
   me: async () => { await delay(200); return DEMO_USER },
@@ -277,7 +229,7 @@ export const demoAuthApi = {
 export const demoReposApi = {
   list: async (params?: ListReposParams) => {
     await delay()
-    let repos = [...DEMO_REPOS]
+    let repos = DEMO_REPOS.map(applyOverride)
     if (params?.q) {
       repos = repos.filter((r) => r.full_name.toLowerCase().includes(params.q!.toLowerCase()))
     }
@@ -320,9 +272,6 @@ export const demoReposApi = {
       scanned_at: new Date(Date.now() - (9 - i) * 6 * 3600 * 1000).toISOString(),
     }))
   },
-  scanAll: async () => { await delay(600); return { count: DEMO_REPOS.length } },
-  scan: async (_id: number) => { await delay(600); return { status: 'scan queued' } },
-  get: async (id: number) => { await delay(200); return DEMO_REPOS.find((r) => r.id === id)! },
 }
 
 // Derived from the actual DEMO_REPOS scan results (scanned repos 1–4)

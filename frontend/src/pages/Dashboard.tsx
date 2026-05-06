@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { LogOut, RefreshCw, ScanLine, Search, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { dashboardApi, reposApi } from '../api/client'
@@ -24,16 +24,17 @@ export default function Dashboard() {
     queryKey: ['repos', search, sort],
     queryFn: () => reposApi.list({ q: search || undefined, sort }),
     refetchInterval: pendingIds.size > 0 ? 4000 : false,
-    onSuccess: (data) => {
-      if (pendingIds.size === 0) return
-      const stillPending = data.some((r) => pendingIds.has(r.id) && r.health_score === null)
-      if (!stillPending) {
-        setPendingIds(new Set())
-        queryClient.invalidateQueries({ queryKey: ['summary'] })
-        toast.success('All repos scanned!')
-      }
-    },
   })
+
+  useEffect(() => {
+    if (pendingIds.size === 0 || !repos) return
+    const stillPending = repos.some((r) => pendingIds.has(r.id) && r.health_score === null)
+    if (!stillPending) {
+      setPendingIds(new Set())
+      queryClient.invalidateQueries({ queryKey: ['summary'] })
+      toast.success('All repos scanned!')
+    }
+  }, [repos, pendingIds, queryClient])
 
   const sync = useMutation({
     mutationFn: reposApi.sync,

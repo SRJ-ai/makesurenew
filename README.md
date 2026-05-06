@@ -1,8 +1,15 @@
 # makesurenew
 
-> Repository health monitoring dashboard for developer teams.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Live Demo](https://img.shields.io/badge/demo-live-blue)](https://srj-ai.github.io/makesurenew/)
+[![CI](https://github.com/srj-ai/makesurenew/actions/workflows/ci.yml/badge.svg)](https://github.com/srj-ai/makesurenew/actions/workflows/ci.yml)
 
-Connect your GitHub repos and instantly see what needs attention — missing CI workflows, no LICENSE file, outdated configs, and more. Every repo gets a **health score from 0–100**.
+> Repository health monitoring for developers — 35 automated checks, scored out of 100.
+
+Connect your GitHub repos and instantly see what needs attention — missing CI, no tests, outdated dependencies, broken workflows, and more. Every repo gets a **health score from 0–100** with one-click fix links for every failing check.
+
+**[→ Try the live demo](https://srj-ai.github.io/makesurenew/)** · No login required.
 
 ---
 
@@ -28,23 +35,13 @@ Connect your GitHub repos and instantly see what needs attention — missing CI 
    - `GITHUB_CLIENT_ID` → your OAuth App Client ID
    - `GITHUB_CLIENT_SECRET` → your OAuth App Client Secret
 
-5. **Update the callback URL** in render.yaml and in your GitHub OAuth App if your Render service has a different name than `makesurenew`:
-   - `GITHUB_REDIRECT_URI` → `https://<your-service-name>.onrender.com/api/auth/callback`
-   - `FRONTEND_URL` → `https://<your-service-name>.onrender.com`
-
-6. **Trigger a deploy** — Render builds the Docker image, copies the frontend, and starts the server.
+5. **Trigger a deploy** — Render builds the Docker image, copies the frontend, and starts the server.
 
 > First deploy takes ~3 min. Subsequent deploys are faster.
 
 ---
 
 ## Run locally (Docker Compose)
-
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) + Docker Compose
-- A [GitHub OAuth App](https://github.com/settings/developers):
-  - Callback URL: `http://localhost:8000/api/auth/callback`
 
 ```sh
 git clone https://github.com/srj-ai/makesurenew
@@ -60,17 +57,29 @@ Open **http://localhost:5173** → sign in with GitHub → sync your repos.
 
 ## How scoring works
 
-| Check | Points |
-|---|---|
-| Has README | 30 |
-| Has CI workflow (GitHub Actions) | 30 |
-| Has LICENSE | 20 |
-| Has .gitignore | 20 |
-| **Total** | **100** |
+35 checks run in parallel via GitHub API. Weights sum to 100 — the score is a direct percentage.
+
+| Category | Checks | Max pts |
+|---|---|---|
+| **Critical** | README · CI · Tests · License · CI passing | 38 |
+| **Security** | Dependabot · Security policy · Lock file · Type checking | 18 |
+| **Maintainability** | Recent commits · Contributing · CODEOWNERS · Linter · Formatter · Docker | 17 |
+| **Discoverability** | Releases · Topics · Dev container · Makefile · Good first issues · API docs | 12 |
+| **Polish** | Issue templates · PR template · .gitignore · .env.example · pre-commit · SUPPORT · Description · CHANGELOG · Docs · CoC · Stale bot · FUNDING · Homepage · Scorecard | 14 |
 
 - **80–100** — Healthy
 - **50–79** — Needs attention
 - **0–49** — Critical
+
+Each failing check includes a direct link to fix it on GitHub.
+
+---
+
+## Automation
+
+- **Auto-rescan every 6 hours** via APScheduler
+- **Instant rescan on git push** via GitHub webhook (`POST /api/github/webhook`)
+- **Email alerts** when a repo's score drops 10+ points
 
 ---
 
@@ -81,16 +90,18 @@ Open **http://localhost:5173** → sign in with GitHub → sync your repos.
 | Backend | Python 3.12 · FastAPI · PostgreSQL · SQLAlchemy |
 | Frontend | React 18 · TypeScript · Vite · Tailwind CSS |
 | Auth | GitHub OAuth2 · JWT |
+| Automation | APScheduler · GitHub Webhooks |
 | Deploy | Docker · Render.com |
 
 ---
 
 ## Contributing
 
-See the [open issues](../../issues) — `good first issue` labels are great starting points.
+PRs are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions.
+Check the [open issues](../../issues) — `good first issue` labels are great starting points.
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)

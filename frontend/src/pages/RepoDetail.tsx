@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle, Copy, ExternalLink, Scan, XCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link, useParams } from 'react-router-dom'
 import { reposApi } from '../api/client'
@@ -61,14 +61,16 @@ export default function RepoDetail() {
     queryKey: ['repo', repoId],
     queryFn: () => reposApi.get(repoId),
     refetchInterval: scanTriggeredAt ? 3000 : false,
-    onSuccess: (data) => {
-      if (scanTriggeredAt && data.last_scanned_at && data.last_scanned_at > scanTriggeredAt) {
-        setScanTriggeredAt(null)
-        queryClient.invalidateQueries({ queryKey: ['repos'] })
-        toast.success('Scan complete!')
-      }
-    },
   })
+
+  useEffect(() => {
+    if (!scanTriggeredAt || !repo?.last_scanned_at) return
+    if (repo.last_scanned_at > scanTriggeredAt) {
+      setScanTriggeredAt(null)
+      queryClient.invalidateQueries({ queryKey: ['repos'] })
+      toast.success('Scan complete!')
+    }
+  }, [repo?.last_scanned_at, scanTriggeredAt, queryClient])
 
   const scan = useMutation({
     mutationFn: () => reposApi.scan(repoId),
@@ -130,7 +132,7 @@ export default function RepoDetail() {
             </button>
             <button
               onClick={() => scan.mutate()}
-              disabled={scan.isPending || scanTriggeredAt}
+              disabled={scan.isPending || !!scanTriggeredAt}
               className="flex items-center gap-2 bg-green-700 hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               <Scan className={`w-4 h-4 ${scanTriggeredAt ? 'animate-pulse' : ''}`} />
@@ -226,7 +228,7 @@ export default function RepoDetail() {
           <div className="bg-gray-900 rounded-xl p-6 mt-6">
             <h2 className="font-semibold mb-4">Score history</h2>
             <div className="flex items-end gap-1 h-16">
-              {[...history].reverse().map((entry, i) => {
+              {[...history].reverse().map((entry) => {
                 const color =
                   entry.health_score >= 80 ? 'bg-green-400' :
                   entry.health_score >= 50 ? 'bg-yellow-400' : 'bg-red-400'

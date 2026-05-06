@@ -43,5 +43,13 @@ jobs:
         working-directory: backend
 
       - name: Check syntax
-        run: python -m py_compile app/main.py app/models.py app/schemas.py app/config.py app/database.py app/routers/auth.py app/routers/repos.py app/routers/dashboard.py app/services/scanner.py
+        run: |
+          python -m py_compile \
+            app/main.py app/models.py app/schemas.py \
+            app/config.py app/database.py \
+            app/routers/auth.py app/routers/repos.py \
+            app/routers/dashboard.py app/routers/users.py \
+            app/routers/badge.py app/routers/github_webhooks.py \
+            app/services/scanner.py app/services/scheduler.py \
+            app/services/notifier.py
         working-directory: backend

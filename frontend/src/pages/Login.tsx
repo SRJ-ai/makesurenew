@@ -41,9 +41,31 @@ export default function Login() {
           </div>
         )}
 
-        <div className="inline-flex items-center gap-2 mb-6 bg-green-900/20 border border-green-700/30 text-green-400 text-sm px-4 py-1.5 rounded-full">
-          <Star className="w-3.5 h-3.5" />
-          Open source · Free tier available
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+          <span className="inline-flex items-center gap-1.5 bg-green-900/20 border border-green-700/30 text-green-400 text-xs px-3 py-1 rounded-full">
+            <Star className="w-3 h-3" /> Open source
+          </span>
+          <a
+            href="https://github.com/srj-ai/makesurenew/blob/main/LICENSE"
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 bg-gray-800 border border-gray-700 text-gray-300 hover:text-white text-xs px-3 py-1 rounded-full transition-colors"
+          >
+            License: MIT
+          </a>
+          <a
+            href="https://github.com/srj-ai/makesurenew/blob/main/CONTRIBUTING.md"
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 bg-gray-800 border border-gray-700 text-gray-300 hover:text-white text-xs px-3 py-1 rounded-full transition-colors"
+          >
+            PRs Welcome
+          </a>
+          <a
+            href="https://srj-ai.github.io/makesurenew/"
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 bg-blue-900/20 border border-blue-700/30 text-blue-400 hover:text-blue-300 text-xs px-3 py-1 rounded-full transition-colors"
+          >
+            Live demo ↗
+          </a>
         </div>
 
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6 leading-tight">
@@ -101,28 +123,33 @@ export default function Login() {
             </div>
             <div className="text-3xl font-bold text-green-400">85<span className="text-lg text-gray-500">/100</span></div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { label: 'README', pts: 25, pass: true },
-              { label: 'CI workflow', pts: 20, pass: true },
-              { label: 'LICENSE', pts: 15, pass: true },
-              { label: 'SECURITY.md', pts: 10, pass: false },
-              { label: 'CONTRIBUTING', pts: 10, pass: true },
-              { label: 'Recent commits', pts: 10, pass: true },
-              { label: '.gitignore', pts: 5, pass: false },
-              { label: 'Code of conduct', pts: 5, pass: false },
+              { label: 'README', pts: 8,  pass: true  },
+              { label: 'CI workflow', pts: 8,  pass: true  },
+              { label: 'Tests', pts: 7,  pass: true  },
+              { label: 'LICENSE', pts: 6,  pass: true  },
+              { label: 'CI passing', pts: 5,  pass: false },
+              { label: 'Dependabot', pts: 5,  pass: false },
+              { label: 'Security policy', pts: 5,  pass: true  },
+              { label: 'Lock file', pts: 5,  pass: true  },
+              { label: 'Type checking', pts: 4,  pass: false },
+              { label: 'CODEOWNERS', pts: 4,  pass: false },
+              { label: 'Linter', pts: 3,  pass: true  },
+              { label: 'Formatter', pts: 3,  pass: false },
             ].map(({ label, pts, pass }) => (
-              <div key={label} className={`rounded-lg p-3 text-sm flex items-center gap-2 ${pass ? 'bg-green-900/20 border border-green-800/30' : 'bg-red-900/20 border border-red-800/30'}`}>
-                <span className={pass ? 'text-green-400' : 'text-red-400'}>
+              <div key={label} className={`rounded-lg p-2.5 text-sm flex items-center gap-2 ${pass ? 'bg-green-900/20 border border-green-800/30' : 'bg-red-900/20 border border-red-800/30'}`}>
+                <span className={`shrink-0 ${pass ? 'text-green-400' : 'text-red-400'}`}>
                   {pass ? '✓' : '✗'}
                 </span>
                 <div className="min-w-0">
-                  <div className={`font-medium truncate ${pass ? 'text-green-100' : 'text-red-100'}`}>{label}</div>
+                  <div className={`font-medium truncate text-xs ${pass ? 'text-green-100' : 'text-red-100'}`}>{label}</div>
                   <div className="text-xs text-gray-500">{pts} pts</div>
                 </div>
               </div>
             ))}
           </div>
+          <p className="text-xs text-gray-600 mt-3 text-right">+23 more checks · 35 total</p>
         </div>
       </section>
 

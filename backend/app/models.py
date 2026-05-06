@@ -32,8 +32,8 @@ class Repository(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     github_repo_id = Column(Integer, unique=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    full_name = Column(String)
+    owner_id = Column(Integer, ForeignKey("users.id"), index=True)
+    full_name = Column(String, index=True)
     name = Column(String)
     description = Column(Text, nullable=True)
     is_private = Column(Boolean, default=False)
@@ -63,4 +63,7 @@ class ScanHistory(Base):
 
     __table_args__ = (
         Index("ix_scan_history_repo_time", "repository_id", "scanned_at"),
+
+    __table_args__ = (
+        Index("ix_repo_owner_score", "owner_id", "health_score"),
     )

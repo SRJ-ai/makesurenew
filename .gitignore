@@ -1,40 +1,37 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
-build/
-.eggs/
-.venv/
-venv/
-*.egg
+# Binaries
+/dist/
+/bin/
+*.exe
+*.out
+*.o
 
-# Node / frontend
+# Dependencies
 node_modules/
-frontend/dist/
-frontend/.vite/
-*.tsbuildinfo
+vendor/
+
+# Build artifacts
+build/
+.cache/
 
 # Environment
 .env
 .env.local
-.env.*.local
+*.env
 
-# Editors / OS
+# OS
 .DS_Store
-.idea/
-.vscode/
-*.swp
-*.swo
 Thumbs.db
 
-# Docker
-*.log
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Test / coverage
-.coverage
-htmlcov/
-.pytest_cache/
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+.nyc_output/

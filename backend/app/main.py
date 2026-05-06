@@ -16,6 +16,8 @@ from .database import Base, engine, get_db
 from .routers import auth, badge, billing, dashboard, public, repos
 from .routers import github_webhooks, users
 from .services.scheduler import start_scheduler, stop_scheduler
+from .database import Base, engine
+from .routers import auth, badge, dashboard, repos
 
 Base.metadata.create_all(bind=engine)
 
@@ -49,6 +51,10 @@ app.include_router(public.router,           prefix="/api/public",  tags=["public
 app.include_router(billing.router,          prefix="/api/billing", tags=["billing"])
 app.include_router(github_webhooks.router,  prefix="/api/github",  tags=["github"])
 app.include_router(users.router,            prefix="/api/users",   tags=["users"])
+app.include_router(auth.router,      prefix="/api/auth",      tags=["auth"])
+app.include_router(repos.router,     prefix="/api/repos",     tags=["repos"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(badge.router,     prefix="/api/badge",     tags=["badge"])
 
 
 @app.get("/health")
@@ -62,7 +68,7 @@ def health_check(db: Session = Depends(get_db)):
     return {"status": status, "db": "ok" if db_ok else "error", "version": "0.1.0"}
 
 
-# Serve built React frontend (production only — not present in dev)
+# Serve built React frontend in production (static/ not present in dev)
 _static = Path(__file__).parent.parent / "static"
 if _static.exists():
     app.mount("/assets", StaticFiles(directory=str(_static / "assets")), name="assets")

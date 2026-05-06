@@ -1,7 +1,5 @@
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -79,9 +77,7 @@ async def sync_repos(request: Request, token: str, db: Session = Depends(get_db)
 
 
 @router.post("/scan-all")
-@limiter.limit("5/minute")
 async def scan_all_repos(
-    request: Request,
     token: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),

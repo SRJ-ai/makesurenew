@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#030712"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    <linearGradient id="bar1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4ade80"/>
+      <stop offset="100%" style="stop-color:#22c55e"/>
+    </linearGradient>
+    <linearGradient id="bar2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#facc15"/>
+      <stop offset="100%" style="stop-color:#eab308"/>
+    </linearGradient>
+    <linearGradient id="bar3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f87171"/>
+      <stop offset="100%" style="stop-color:#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="#1e293b" stroke-width="1"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="#1e293b" stroke-width="1"/>
+  <line x1="400" y1="0" x2="400" y2="630" stroke="#1e293b" stroke-width="1"/>
+  <line x1="800" y1="0" x2="800" y2="630" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Shield icon -->
+  <g transform="translate(80, 80)">
+    <path d="M40 4 L72 16 C72 38 60 58 40 68 C20 58 8 38 8 16 Z" fill="none" stroke="#4ade80" stroke-width="3"/>
+    <path d="M26 36 L34 44 L54 28" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Product name -->
+  <text x="160" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="700" fill="#f8fafc" letter-spacing="-1">makesurenew</text>
+
+  <!-- Tagline -->
+  <text x="80" y="190" font-family="system-ui, -apple-system, sans-serif" font-size="26" fill="#94a3b8" letter-spacing="0">Repository health monitoring dashboard for developer teams</text>
+
+  <!-- Divider -->
+  <rect x="80" y="220" width="120" height="3" rx="2" fill="#4ade80"/>
+
+  <!-- Repo cards -->
+  <!-- Card 1 - healthy -->
+  <rect x="80" y="260" width="490" height="90" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="110" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#e2e8f0" font-weight="600">awesome-api</text>
+  <text x="110" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">A well-maintained REST API</text>
+  <rect x="420" y="274" width="120" height="32" rx="8" fill="#052e16"/>
+  <text x="480" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="15" fill="#4ade80" font-weight="700" text-anchor="middle">100 / 100</text>
+
+  <!-- Card 2 - warning -->
+  <rect x="80" y="366" width="490" height="90" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="110" y="406" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#e2e8f0" font-weight="600">react-dashboard</text>
+  <text x="110" y="434" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">Analytics dashboard — missing CI + LICENSE</text>
+  <rect x="420" y="380" width="120" height="32" rx="8" fill="#1c1400"/>
+  <text x="480" y="401" font-family="system-ui, -apple-system, sans-serif" font-size="15" fill="#facc15" font-weight="700" text-anchor="middle">70 / 100</text>
+
+  <!-- Card 3 - critical -->
+  <rect x="80" y="472" width="490" height="90" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="110" y="512" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#e2e8f0" font-weight="600">old-scraper</text>
+  <text x="110" y="540" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">Legacy project — no README, CI, or LICENSE</text>
+  <rect x="420" y="486" width="120" height="32" rx="8" fill="#1c0000"/>
+  <text x="480" y="507" font-family="system-ui, -apple-system, sans-serif" font-size="15" fill="#f87171" font-weight="700" text-anchor="middle">30 / 100</text>
+
+  <!-- Right panel: Score breakdown -->
+  <rect x="630" y="260" width="490" height="302" rx="16" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="660" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#94a3b8" font-weight="600">How scoring works</text>
+
+  <!-- Check rows -->
+  <!-- README -->
+  <circle cx="670" cy="345" r="6" fill="#4ade80"/>
+  <text x="690" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="#e2e8f0">README.md</text>
+  <rect x="860" y="333" width="220" height="24" rx="6" fill="#1e293b"/>
+  <rect x="860" y="333" width="220" height="24" rx="6" fill="url(#bar1)" opacity="1"/>
+  <text x="975" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#030712" font-weight="700" text-anchor="middle">30 pts</text>
+
+  <!-- CI -->
+  <circle cx="670" cy="392" r="6" fill="#4ade80"/>
+  <text x="690" y="397" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="#e2e8f0">GitHub Actions CI</text>
+  <rect x="860" y="380" width="220" height="24" rx="6" fill="#1e293b"/>
+  <rect x="860" y="380" width="220" height="24" rx="6" fill="url(#bar1)"/>
+  <text x="975" y="397" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#030712" font-weight="700" text-anchor="middle">30 pts</text>
+
+  <!-- LICENSE -->
+  <circle cx="670" cy="439" r="6" fill="#facc15"/>
+  <text x="690" y="444" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="#e2e8f0">LICENSE file</text>
+  <rect x="860" y="427" width="147" height="24" rx="6" fill="#1e293b"/>
+  <rect x="860" y="427" width="147" height="24" rx="6" fill="url(#bar2)"/>
+  <text x="933" y="444" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#030712" font-weight="700" text-anchor="middle">20 pts</text>
+
+  <!-- .gitignore -->
+  <circle cx="670" cy="486" r="6" fill="#facc15"/>
+  <text x="690" y="491" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="#e2e8f0">.gitignore</text>
+  <rect x="860" y="474" width="147" height="24" rx="6" fill="#1e293b"/>
+  <rect x="860" y="474" width="147" height="24" rx="6" fill="url(#bar2)"/>
+  <text x="933" y="491" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#030712" font-weight="700" text-anchor="middle">20 pts</text>
+
+  <!-- Total -->
+  <rect x="660" y="516" width="440" height="2" fill="#1e293b"/>
+  <text x="660" y="547" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#94a3b8">Total</text>
+  <text x="1080" y="547" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#4ade80" font-weight="700" text-anchor="end">100 pts</text>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="600" width="1200" height="30" fill="#0f172a"/>
+  <text x="80" y="621" font-family="system-ui, -apple-system, sans-serif" font-size="15" fill="#475569">srj-ai.github.io/makesurenew</text>
+  <text x="1120" y="621" font-family="system-ui, -apple-system, sans-serif" font-size="15" fill="#4ade80" text-anchor="end">Free &amp; Open Source</text>
+</svg>

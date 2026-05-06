@@ -47,19 +47,6 @@ export interface DashboardSummary {
   needs_attention: number
 }
 
-export interface TopIssue {
-  check: string
-  failing_count: number
-  total_scanned: number
-  repos: Array<{ id: number; full_name: string }>
-}
-
-export interface ScanHistoryEntry {
-  id: number
-  health_score: number
-  scanned_at: string
-}
-
 export interface ListReposParams {
   q?: string
   sort?: 'name' | 'score' | 'scanned'
@@ -77,33 +64,21 @@ export const authApi = IS_DEMO
 export const reposApi = IS_DEMO
   ? demoReposApi
   : {
-      list: (params?: ListReposParams) => api.get<Repo[]>('/repos/', { params }).then((r) => r.data),
-      sync: () => api.post<{ synced: number }>('/repos/sync').then((r) => r.data),
-      scanAll: () => api.post<{ count: number }>('/repos/scan-all').then((r) => r.data),
-      scan: (id: number) => api.post(`/repos/${id}/scan`).then((r) => r.data),
-      get: (id: number) => api.get<Repo>(`/repos/${id}`).then((r) => r.data),
-      history: (id: number) =>
-        api.get<ScanHistoryEntry[]>(`/repos/${id}/history`).then((r) => r.data),
+      list: (params?: ListReposParams) =>
+        api.get<Repo[]>('/repos/', { params }).then((r) => r.data),
+      sync: () =>
+        api.post<{ synced: number }>('/repos/sync').then((r) => r.data),
+      scanAll: () =>
+        api.post<{ count: number }>('/repos/scan-all').then((r) => r.data),
+      scan: (id: number) =>
+        api.post(`/repos/${id}/scan`).then((r) => r.data),
+      get: (id: number) =>
+        api.get<Repo>(`/repos/${id}`).then((r) => r.data),
     }
 
 export const dashboardApi = IS_DEMO
   ? demoDashboardApi
   : {
-      summary: () => api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
-      topIssues: (limit = 8) =>
-        api.get<TopIssue[]>('/dashboard/top-issues', { params: { limit } }).then((r) => r.data),
-    }
-
-export const usersApi = IS_DEMO
-  ? {
-      updateMe: async (prefs: { email_notifications: boolean }) =>
-        ({ email_notifications: prefs.email_notifications }) as User,
-      generateApiKey: async () => ({ api_key: 'demo-key-not-real' }) as User,
-      revokeApiKey: async () => ({}) as User,
-    }
-  : {
-      updateMe: (prefs: { email_notifications: boolean }) =>
-        api.patch<User>('/users/me', prefs).then((r) => r.data),
-      generateApiKey: () => api.post<User>('/users/me/api-key').then((r) => r.data),
-      revokeApiKey: () => api.delete<User>('/users/me/api-key').then((r) => r.data),
+      summary: () =>
+        api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
     }

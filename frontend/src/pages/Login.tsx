@@ -1,4 +1,4 @@
-import { CheckCircle, GitBranch, Shield, ShieldCheck, Star, Zap } from 'lucide-react'
+import { CheckCircle, GitBranch, Shield, ShieldCheck, Star, TrendingUp, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { authApi, IS_DEMO } from '../api/client'
 
@@ -159,21 +159,28 @@ export default function Login() {
         <p className="text-gray-400 text-center mb-12 max-w-xl mx-auto">
           Built for developers who care about open-source quality and contributor experience.
         </p>
-        <div className="grid sm:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
               Icon: Zap,
               color: 'text-yellow-400',
               bg: 'bg-yellow-900/20',
               title: 'Instant scans',
-              body: 'Parallel GitHub API checks complete in under 2 seconds. No waiting, no polling.',
+              body: '72 parallel GitHub API checks complete in under 2 seconds. No waiting, no polling.',
             },
             {
               Icon: Shield,
               color: 'text-blue-400',
               bg: 'bg-blue-900/20',
               title: 'Actionable issues',
-              body: 'Every failed check includes a clear fix suggestion and priority level.',
+              body: 'Every failed check includes a clear fix suggestion and direct link to fix it.',
+            },
+            {
+              Icon: TrendingUp,
+              color: 'text-orange-400',
+              bg: 'bg-orange-900/20',
+              title: 'Cross-repo insights',
+              body: 'See which checks fail most across all your repos — fix one pattern, fix everything.',
             },
             {
               Icon: GitBranch,

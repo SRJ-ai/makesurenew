@@ -40,7 +40,78 @@ const FIX_LINKS: Record<string, (fullName: string) => string> = {
   has_funding:          (r) => `https://github.com/${r}/new/main?filename=.github%2FFUNDING.yml`,
   has_homepage:         (r) => `https://github.com/${r}`,
   has_scorecard:        (r) => `https://github.com/${r}/new/main?filename=.github%2Fworkflows%2Fscorecard.yml`,
+  has_recent_commits:   (r) => `https://github.com/${r}`,
 }
+
+const CHECK_LABELS: Record<string, string> = {
+  has_readme: 'README', has_ci: 'CI workflow', has_tests: 'Tests',
+  has_license: 'License', ci_passing: 'CI passing',
+  has_dependabot: 'Dependabot', has_security_policy: 'Security policy',
+  has_lock_file: 'Lock file', has_type_checking: 'Type checking',
+  has_recent_commits: 'Recent commits', has_contributing: 'CONTRIBUTING',
+  has_codeowners: 'CODEOWNERS', has_linter: 'Linter', has_formatter: 'Formatter',
+  has_docker: 'Dockerfile', has_releases: 'Releases', has_topics: 'Topics',
+  has_devcontainer: 'Dev container', has_makefile: 'Makefile',
+  has_good_first_issue: 'Good first issues', has_api_docs: 'API docs',
+  has_issue_templates: 'Issue templates', has_pr_template: 'PR template',
+  has_gitignore: '.gitignore', has_env_example: '.env.example',
+  has_pre_commit: 'Pre-commit hooks', has_support: 'SUPPORT',
+  has_description: 'Description', has_changelog: 'Changelog',
+  has_docs: 'Docs folder', has_code_of_conduct: 'Code of conduct',
+  has_stale_bot: 'Stale bot', has_funding: 'FUNDING',
+  has_homepage: 'Homepage', has_scorecard: 'OSSF Scorecard',
+}
+
+const CHECK_WEIGHTS: Record<string, number> = {
+  has_readme: 8, has_ci: 8, has_tests: 7, has_license: 6, ci_passing: 5,
+  has_dependabot: 5, has_security_policy: 5, has_lock_file: 5,
+  has_type_checking: 4, has_recent_commits: 4, has_contributing: 4, has_codeowners: 4,
+  has_linter: 3, has_formatter: 3, has_docker: 3,
+  has_releases: 2, has_topics: 2, has_devcontainer: 2, has_makefile: 2,
+  has_good_first_issue: 2, has_api_docs: 2,
+  has_issue_templates: 1, has_pr_template: 1, has_gitignore: 1, has_env_example: 1,
+  has_pre_commit: 1, has_support: 1, has_description: 1, has_changelog: 1,
+  has_docs: 1, has_code_of_conduct: 1, has_stale_bot: 1, has_funding: 1,
+  has_homepage: 1, has_scorecard: 1,
+}
+
+const CATEGORIES = [
+  {
+    name: 'Critical',
+    color: 'text-red-400',
+    bar: 'bg-red-400',
+    checks: ['has_readme', 'has_ci', 'has_tests', 'has_license', 'ci_passing'],
+  },
+  {
+    name: 'Security & Maintenance',
+    color: 'text-orange-400',
+    bar: 'bg-orange-400',
+    checks: ['has_dependabot', 'has_security_policy', 'has_lock_file',
+             'has_type_checking', 'has_recent_commits', 'has_contributing', 'has_codeowners'],
+  },
+  {
+    name: 'Code Quality',
+    color: 'text-blue-400',
+    bar: 'bg-blue-400',
+    checks: ['has_linter', 'has_formatter', 'has_docker'],
+  },
+  {
+    name: 'Discoverability',
+    color: 'text-purple-400',
+    bar: 'bg-purple-400',
+    checks: ['has_releases', 'has_topics', 'has_devcontainer',
+             'has_makefile', 'has_good_first_issue', 'has_api_docs'],
+  },
+  {
+    name: 'Polish',
+    color: 'text-gray-400',
+    bar: 'bg-gray-400',
+    checks: ['has_issue_templates', 'has_pr_template', 'has_gitignore',
+             'has_env_example', 'has_pre_commit', 'has_support', 'has_description',
+             'has_changelog', 'has_docs', 'has_code_of_conduct', 'has_stale_bot',
+             'has_funding', 'has_homepage', 'has_scorecard'],
+  },
+] as const
 
 const BADGE_BASE = 'https://makesurenew.onrender.com'
 
@@ -48,7 +119,6 @@ export default function RepoDetail() {
   const { id } = useParams<{ id: string }>()
   const repoId = Number(id)
   const queryClient = useQueryClient()
-  // ISO timestamp captured the moment "Scan now" is clicked; null = not scanning
   const [scanTriggeredAt, setScanTriggeredAt] = useState<string | null>(null)
 
   const { data: history } = useQuery({
@@ -166,25 +236,56 @@ export default function RepoDetail() {
 
         {Object.keys(checks).length > 0 && (
           <div className="bg-gray-900 rounded-xl p-6 mb-6">
-            <h2 className="font-semibold mb-4">Checks</h2>
-            <div className="space-y-3">
-              {Object.entries(checks).map(([check, passed]) => (
-                <div key={check} className="flex items-center gap-3">
-                  {passed ? (
-                    <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-red-400 shrink-0" />
-                  )}
-                  <span className="text-sm text-gray-300 capitalize">
-                    {check.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              ))}
+            <h2 className="font-semibold mb-5">Checks by category</h2>
+            <div className="space-y-6">
+              {CATEGORIES.map((cat) => {
+                const catChecks = cat.checks.filter((c) => c in checks)
+                if (catChecks.length === 0) return null
+                const maxPts = catChecks.reduce((s, c) => s + (CHECK_WEIGHTS[c] ?? 0), 0)
+                const earnedPts = catChecks.filter((c) => checks[c]).reduce((s, c) => s + (CHECK_WEIGHTS[c] ?? 0), 0)
+                const pct = maxPts > 0 ? Math.round((earnedPts / maxPts) * 100) : 0
+                return (
+                  <div key={cat.name}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-xs font-semibold uppercase tracking-wider ${cat.color}`}>
+                        {cat.name}
+                      </span>
+                      <span className="text-xs text-gray-500">{earnedPts}/{maxPts} pts</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-1.5 mb-3">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${cat.bar}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      {catChecks.map((check) => {
+                        const passed = checks[check]
+                        return (
+                          <div key={check} className="flex items-center gap-3">
+                            {passed ? (
+                              <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                            )}
+                            <span className={`text-sm flex-1 ${passed ? 'text-gray-400' : 'text-gray-200'}`}>
+                              {CHECK_LABELS[check] ?? check}
+                            </span>
+                            <span className="text-xs text-gray-600">
+                              {CHECK_WEIGHTS[check] ?? 0} pt{(CHECK_WEIGHTS[check] ?? 0) !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
 
-        {issues.length > 0 && (
+        {issues.length > 0 ? (
           <div className="space-y-3">
             <h2 className="font-semibold mb-2">Issues to fix</h2>
             {issues.map((issue) => {
@@ -222,7 +323,13 @@ export default function RepoDetail() {
               )
             })}
           </div>
-        )}
+        ) : repo.health_score != null ? (
+          <div className="bg-green-950 border border-green-800 rounded-xl p-6 text-center">
+            <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+            <p className="text-green-300 font-semibold">All checks pass!</p>
+            <p className="text-green-600 text-sm mt-1">This repo scores perfectly on every check.</p>
+          </div>
+        ) : null}
 
         {history && history.length > 1 && (
           <div className="bg-gray-900 rounded-xl p-6 mt-6">

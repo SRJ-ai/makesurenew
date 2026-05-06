@@ -47,6 +47,24 @@ export interface DashboardSummary {
   needs_attention: number
 }
 
+export interface ScanHistoryEntry {
+  id: number
+  health_score: number
+  scanned_at: string
+}
+
+export interface AffectedRepo {
+  id: number
+  full_name: string
+}
+
+export interface TopIssue {
+  check: string
+  failing_count: number
+  total_scanned: number
+  repos: AffectedRepo[]
+}
+
 export interface ListReposParams {
   q?: string
   sort?: 'name' | 'score' | 'scanned'
@@ -74,6 +92,8 @@ export const reposApi = IS_DEMO
         api.post(`/repos/${id}/scan`).then((r) => r.data),
       get: (id: number) =>
         api.get<Repo>(`/repos/${id}`).then((r) => r.data),
+      history: (id: number) =>
+        api.get<ScanHistoryEntry[]>(`/repos/${id}/history`).then((r) => r.data),
     }
 
 export const dashboardApi = IS_DEMO
@@ -81,4 +101,22 @@ export const dashboardApi = IS_DEMO
   : {
       summary: () =>
         api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
+      topIssues: (limit = 8) =>
+        api.get<TopIssue[]>('/dashboard/top-issues', { params: { limit } }).then((r) => r.data),
+    }
+
+export const usersApi = IS_DEMO
+  ? {
+      updateMe: (_prefs: { email_notifications: boolean }) =>
+        Promise.resolve({} as User),
+      generateApiKey: () => Promise.resolve({} as User),
+      revokeApiKey: () => Promise.resolve({} as User),
+    }
+  : {
+      updateMe: (prefs: { email_notifications: boolean }) =>
+        api.patch<User>('/users/me', prefs).then((r) => r.data),
+      generateApiKey: () =>
+        api.post<User>('/users/me/api-key').then((r) => r.data),
+      revokeApiKey: () =>
+        api.delete<User>('/users/me/api-key').then((r) => r.data),
     }

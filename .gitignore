@@ -12,6 +12,21 @@ vendor/
 # Build artifacts
 build/
 .cache/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
 
 # Environment
 .env
@@ -35,3 +50,6 @@ logs/
 # Test coverage
 coverage/
 .nyc_output/
+.coverage
+htmlcov/
+.pytest_cache/

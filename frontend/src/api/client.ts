@@ -47,6 +47,13 @@ export interface DashboardSummary {
   needs_attention: number
 }
 
+export interface TopIssue {
+  check: string
+  failing_count: number
+  total_scanned: number
+  repos: Array<{ id: number; full_name: string }>
+}
+
 export interface ScanHistoryEntry {
   id: number
   health_score: number
@@ -83,6 +90,8 @@ export const dashboardApi = IS_DEMO
   ? demoDashboardApi
   : {
       summary: () => api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
+      topIssues: (limit = 8) =>
+        api.get<TopIssue[]>('/dashboard/top-issues', { params: { limit } }).then((r) => r.data),
     }
 
 export const usersApi = IS_DEMO

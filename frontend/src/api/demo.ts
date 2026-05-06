@@ -1,4 +1,4 @@
-import type { DashboardSummary, ListReposParams, Repo, ScanHistoryEntry, User } from './client'
+import type { DashboardSummary, ListReposParams, Repo, ScanHistoryEntry, TopIssue, User } from './client'
 
 export const DEMO_USER: User = {
   id: 1,
@@ -266,6 +266,18 @@ export const demoReposApi = {
   },
 }
 
+const DEMO_TOP_ISSUES: TopIssue[] = [
+  { check: 'has_security_policy',  failing_count: 4, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_codeowners',       failing_count: 4, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_contributing',     failing_count: 3, total_scanned: 5, repos: [{ id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_dependabot',       failing_count: 3, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_lock_file',        failing_count: 3, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_changelog',        failing_count: 3, total_scanned: 5, repos: [{ id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_docker',           failing_count: 2, total_scanned: 5, repos: [{ id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  { check: 'has_scorecard',        failing_count: 2, total_scanned: 5, repos: [{ id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+]
+
 export const demoDashboardApi = {
   summary: async () => { await delay(300); return DEMO_SUMMARY },
+  topIssues: async (_limit = 8): Promise<TopIssue[]> => { await delay(300); return DEMO_TOP_ISSUES },
 }

@@ -60,18 +60,18 @@ CHECKS = {
 
 MESSAGES = {
     "has_readme":           "Missing README.md — add one to describe your project",
-    "has_ci":               "No CI workflow — add GitHub Actions to automate testing",
-    "has_tests":            "No test directory found — add tests/ or __tests__/ to verify your code",
+    "has_ci":               "No CI workflow — add GitHub Actions, CircleCI, or GitLab CI to automate testing",
+    "has_tests":            "No test directory found — add tests/, __tests__/, or cypress/ to verify your code",
     "has_license":          "No LICENSE file — required for open-source adoption",
     "ci_passing":           "CI is currently failing — fix the broken workflow so merges stay green",
     "has_dependabot":       "No Dependabot config — add .github/dependabot.yml for automatic security patches",
     "has_security_policy":  "No SECURITY.md — document how to responsibly report vulnerabilities",
-    "has_lock_file":        "No lock file — add package-lock.json/yarn.lock/poetry.lock for reproducible builds",
-    "has_type_checking":    "No type checking config — add tsconfig.json or mypy.ini to catch type errors early",
+    "has_lock_file":        "No lock file — add package-lock.json, pnpm-lock.yaml, poetry.lock, or go.sum for reproducible builds",
+    "has_type_checking":    "No type checking config — add tsconfig.json, pyrightconfig.json, or mypy.ini to catch type errors early",
     "has_recent_commits":   "No commits in 90 days — consider archiving or updating",
     "has_contributing":     "No CONTRIBUTING.md — help new contributors get started",
     "has_codeowners":       "No CODEOWNERS file — add .github/CODEOWNERS to auto-assign reviewers",
-    "has_linter":           "No linter config (.eslintrc, .flake8, .rubocop.yml) — enforce code style automatically",
+    "has_linter":           "No linter config (.eslintrc, ruff.toml, .flake8, .rubocop.yml) — enforce code style automatically",
     "has_formatter":        "No formatter config (.prettierrc, .editorconfig) — enforce consistent formatting",
     "has_docker":           "No Dockerfile — containerise so contributors can run the project without manual setup",
     "has_releases":         "No releases published — tag versions so users know what to install",
@@ -110,76 +110,127 @@ async def _run_checks(full_name: str, token: str) -> dict[str, bool]:
 
     async with httpx.AsyncClient(timeout=15) as client:
         (
-            # ── existing checks ───────────────────────────────────────
-            readme_status, license_status, ci_resp,
-            gitignore_status, security_status, contributing_status,
-            coc_status, commits_resp, dependabot_status,
-            changelog_status, issue_tmpl_resp, pr_tmpl_status, repo_resp,
-            tests_status, tests2_status, tests3_status, tests4_status,
-            eslint_status, flake8_status, rubocop_status,
-            releases_resp, env_example_status,
+            # ── core repo data ────────────────────────────────────────
+            readme_status, license_status, repo_resp,
+            # ── CI — GitHub Actions, CircleCI, Travis, GitLab ─────────
+            ci_resp, circleci_status, travis_status, gitlab_ci_status,
             ci_runs_resp,
-            lock1_status, lock2_status, lock3_status,
+            # ── tests — multiple directory conventions ─────────────────
+            tests_status, tests2_status, tests3_status, tests4_status,
+            tests5_status, tests6_status,                # cypress/, e2e/
+            # ── security & dependencies ───────────────────────────────
+            security_status, dependabot_status,
+            lock1_status, lock2_status, lock3_status,    # npm, yarn, poetry
+            lock4_status, lock5_status, lock6_status,    # pnpm, Gemfile, go.sum
+            lock7_status,                                # Cargo.lock
+            # ── type checking ─────────────────────────────────────────
+            tsconfig_status, mypy_status,
+            pyright_status, mypy2_status,                # pyrightconfig, .mypy.ini
+            # ── linter — JS/TS, Python, Ruby, Rust ────────────────────
+            eslint1_status, eslint2_status, eslint3_status,  # .eslintrc.json, eslint.config.js, .eslintrc
+            flake8_status, pylint_status, ruff_status,       # Python linters
+            rubocop_status,                                  # Ruby
+            # ── formatter ─────────────────────────────────────────────
+            prettier1_status, prettier2_status, prettier3_status,  # .prettierrc.json, .prettierrc, prettier.config.js
+            editorconfig_status,
+            # ── commits, contributing, codeowners ─────────────────────
+            commits_resp,
+            contributing_status, contributing2_status,   # root, .github/
             codeowners1_status, codeowners2_status,
-            docs_status, devcontainer_status,
-            precommit_status, support_status,
-            # ── new checks ────────────────────────────────────────────
-            prettier_status, editorconfig_status,       # formatter
-            tsconfig_status, mypy_status,               # type checking
-            docker_status,                              # containerisation
-            makefile_status,                            # task runner
-            good_first_resp,                            # contributor experience
-            openapi_status, swagger_status,             # api docs
-            stale_status,                               # issue hygiene
-            funding_status,                             # sustainability
-            scorecard_status,                           # OSSF scorecard
+            # ── changelog ─────────────────────────────────────────────
+            changelog_status, changelog2_status,         # CHANGELOG.md, CHANGES.md
+            # ── docs ──────────────────────────────────────────────────
+            docs_status, docs2_status,                   # docs/, doc/
+            # ── issue / PR templates ──────────────────────────────────
+            issue_tmpl_resp, issue_tmpl2_status,         # ISSUE_TEMPLATE dir, single file
+            pr_tmpl1_status, pr_tmpl2_status,            # lowercase, uppercase
+            # ── discoverability & tooling ─────────────────────────────
+            releases_resp, gitignore_status, env_example_status,
+            docker_status, devcontainer_status, makefile_status,
+            precommit_status, support_status, coc_status,
+            good_first_resp,
+            openapi_status, swagger_status, openapi2_status,  # .yml, .yaml, openapi.json
+            stale_status, funding_status, scorecard_status,
         ) = await asyncio.gather(
-            # ── existing ──────────────────────────────────────────────
+            # ── core ──────────────────────────────────────────────────
             get(client, f"{base}/readme"),
             get(client, f"{base}/license"),
-            client.get(f"{base}/contents/.github/workflows", headers=headers),
-            get(client, f"{base}/contents/.gitignore"),
-            get(client, f"{base}/contents/SECURITY.md"),
-            get(client, f"{base}/contents/CONTRIBUTING.md"),
-            get(client, f"{base}/contents/CODE_OF_CONDUCT.md"),
-            client.get(f"{base}/commits?per_page=1&since={_since_iso()}", headers=headers),
-            get(client, f"{base}/contents/.github/dependabot.yml"),
-            get(client, f"{base}/contents/CHANGELOG.md"),
-            client.get(f"{base}/contents/.github/ISSUE_TEMPLATE", headers=headers),
-            get(client, f"{base}/contents/.github/pull_request_template.md"),
             client.get(base, headers=headers),
+            # ── CI ────────────────────────────────────────────────────
+            client.get(f"{base}/contents/.github/workflows", headers=headers),
+            get(client, f"{base}/contents/.circleci/config.yml"),
+            get(client, f"{base}/contents/.travis.yml"),
+            get(client, f"{base}/contents/.gitlab-ci.yml"),
+            client.get(f"{base}/actions/runs?per_page=1", headers=headers),
+            # ── tests ─────────────────────────────────────────────────
             get(client, f"{base}/contents/tests"),
             get(client, f"{base}/contents/__tests__"),
             get(client, f"{base}/contents/test"),
             get(client, f"{base}/contents/spec"),
-            get(client, f"{base}/contents/.eslintrc.json"),
-            get(client, f"{base}/contents/.flake8"),
-            get(client, f"{base}/contents/.rubocop.yml"),
-            client.get(f"{base}/releases?per_page=1", headers=headers),
-            get(client, f"{base}/contents/.env.example"),
-            client.get(f"{base}/actions/runs?per_page=1", headers=headers),
+            get(client, f"{base}/contents/cypress"),
+            get(client, f"{base}/contents/e2e"),
+            # ── security & dependencies ───────────────────────────────
+            get(client, f"{base}/contents/SECURITY.md"),
+            get(client, f"{base}/contents/.github/dependabot.yml"),
             get(client, f"{base}/contents/package-lock.json"),
             get(client, f"{base}/contents/yarn.lock"),
             get(client, f"{base}/contents/poetry.lock"),
-            get(client, f"{base}/contents/.github/CODEOWNERS"),
-            get(client, f"{base}/contents/CODEOWNERS"),
-            get(client, f"{base}/contents/docs"),
-            get(client, f"{base}/contents/.devcontainer"),
-            get(client, f"{base}/contents/.pre-commit-config.yaml"),
-            get(client, f"{base}/contents/SUPPORT.md"),
-            # ── new ───────────────────────────────────────────────────
-            get(client, f"{base}/contents/.prettierrc.json"),
-            get(client, f"{base}/contents/.editorconfig"),
+            get(client, f"{base}/contents/pnpm-lock.yaml"),
+            get(client, f"{base}/contents/Gemfile.lock"),
+            get(client, f"{base}/contents/go.sum"),
+            get(client, f"{base}/contents/Cargo.lock"),
+            # ── type checking ─────────────────────────────────────────
             get(client, f"{base}/contents/tsconfig.json"),
             get(client, f"{base}/contents/mypy.ini"),
+            get(client, f"{base}/contents/pyrightconfig.json"),
+            get(client, f"{base}/contents/.mypy.ini"),
+            # ── linter ────────────────────────────────────────────────
+            get(client, f"{base}/contents/.eslintrc.json"),
+            get(client, f"{base}/contents/eslint.config.js"),
+            get(client, f"{base}/contents/.eslintrc"),
+            get(client, f"{base}/contents/.flake8"),
+            get(client, f"{base}/contents/.pylintrc"),
+            get(client, f"{base}/contents/ruff.toml"),
+            get(client, f"{base}/contents/.rubocop.yml"),
+            # ── formatter ─────────────────────────────────────────────
+            get(client, f"{base}/contents/.prettierrc.json"),
+            get(client, f"{base}/contents/.prettierrc"),
+            get(client, f"{base}/contents/prettier.config.js"),
+            get(client, f"{base}/contents/.editorconfig"),
+            # ── commits, contributing, codeowners ─────────────────────
+            client.get(f"{base}/commits?per_page=1&since={_since_iso()}", headers=headers),
+            get(client, f"{base}/contents/CONTRIBUTING.md"),
+            get(client, f"{base}/contents/.github/CONTRIBUTING.md"),
+            get(client, f"{base}/contents/.github/CODEOWNERS"),
+            get(client, f"{base}/contents/CODEOWNERS"),
+            # ── changelog ─────────────────────────────────────────────
+            get(client, f"{base}/contents/CHANGELOG.md"),
+            get(client, f"{base}/contents/CHANGES.md"),
+            # ── docs ──────────────────────────────────────────────────
+            get(client, f"{base}/contents/docs"),
+            get(client, f"{base}/contents/doc"),
+            # ── templates ─────────────────────────────────────────────
+            client.get(f"{base}/contents/.github/ISSUE_TEMPLATE", headers=headers),
+            get(client, f"{base}/contents/.github/ISSUE_TEMPLATE.md"),
+            get(client, f"{base}/contents/.github/pull_request_template.md"),
+            get(client, f"{base}/contents/.github/PULL_REQUEST_TEMPLATE.md"),
+            # ── tooling & polish ──────────────────────────────────────
+            client.get(f"{base}/releases?per_page=1", headers=headers),
+            get(client, f"{base}/contents/.gitignore"),
+            get(client, f"{base}/contents/.env.example"),
             get(client, f"{base}/contents/Dockerfile"),
+            get(client, f"{base}/contents/.devcontainer"),
             get(client, f"{base}/contents/Makefile"),
+            get(client, f"{base}/contents/.pre-commit-config.yaml"),
+            get(client, f"{base}/contents/SUPPORT.md"),
+            get(client, f"{base}/contents/CODE_OF_CONDUCT.md"),
             client.get(
                 f"{base}/issues?labels=good+first+issue&state=open&per_page=1",
                 headers=headers,
             ),
             get(client, f"{base}/contents/openapi.yml"),
             get(client, f"{base}/contents/swagger.yml"),
+            get(client, f"{base}/contents/openapi.yaml"),
             get(client, f"{base}/contents/.github/stale.yml"),
             get(client, f"{base}/contents/.github/FUNDING.yml"),
             get(client, f"{base}/contents/.github/workflows/scorecard.yml"),
@@ -196,35 +247,41 @@ async def _run_checks(full_name: str, token: str) -> dict[str, bool]:
 
     return {
         "has_readme":           readme_status == 200,
-        "has_ci":               isinstance(ci_data, list) and len(ci_data) > 0,
-        "has_tests":            200 in (tests_status, tests2_status, tests3_status, tests4_status),
+        "has_ci":               (isinstance(ci_data, list) and len(ci_data) > 0)
+                                or 200 in (circleci_status, travis_status, gitlab_ci_status),
+        "has_tests":            200 in (tests_status, tests2_status, tests3_status,
+                                        tests4_status, tests5_status, tests6_status),
         "has_license":          license_status == 200,
         "ci_passing":           bool(runs) and runs[0].get("conclusion") == "success",
         "has_dependabot":       dependabot_status == 200,
         "has_security_policy":  security_status == 200,
-        "has_lock_file":        200 in (lock1_status, lock2_status, lock3_status),
-        "has_type_checking":    200 in (tsconfig_status, mypy_status),
+        "has_lock_file":        200 in (lock1_status, lock2_status, lock3_status,
+                                        lock4_status, lock5_status, lock6_status, lock7_status),
+        "has_type_checking":    200 in (tsconfig_status, mypy_status, pyright_status, mypy2_status),
         "has_recent_commits":   isinstance(commits_data, list) and len(commits_data) > 0,
-        "has_contributing":     contributing_status == 200,
+        "has_contributing":     200 in (contributing_status, contributing2_status),
         "has_codeowners":       200 in (codeowners1_status, codeowners2_status),
-        "has_linter":           200 in (eslint_status, flake8_status, rubocop_status),
-        "has_formatter":        200 in (prettier_status, editorconfig_status),
+        "has_linter":           200 in (eslint1_status, eslint2_status, eslint3_status,
+                                        flake8_status, pylint_status, ruff_status, rubocop_status),
+        "has_formatter":        200 in (prettier1_status, prettier2_status, prettier3_status,
+                                        editorconfig_status),
         "has_docker":           docker_status == 200,
         "has_releases":         isinstance(releases_data, list) and len(releases_data) > 0,
         "has_topics":           len(repo_data.get("topics") or []) > 0,
         "has_devcontainer":     devcontainer_status == 200,
         "has_makefile":         makefile_status == 200,
         "has_good_first_issue": isinstance(good_first_data, list) and len(good_first_data) > 0,
-        "has_api_docs":         200 in (openapi_status, swagger_status),
-        "has_issue_templates":  isinstance(issue_tmpl_data, list) and len(issue_tmpl_data) > 0,
-        "has_pr_template":      pr_tmpl_status == 200,
+        "has_api_docs":         200 in (openapi_status, swagger_status, openapi2_status),
+        "has_issue_templates":  (isinstance(issue_tmpl_data, list) and len(issue_tmpl_data) > 0)
+                                or issue_tmpl2_status == 200,
+        "has_pr_template":      200 in (pr_tmpl1_status, pr_tmpl2_status),
         "has_gitignore":        gitignore_status == 200,
         "has_env_example":      env_example_status == 200,
         "has_pre_commit":       precommit_status == 200,
         "has_support":          support_status == 200,
         "has_description":      bool(repo_data.get("description")),
-        "has_changelog":        changelog_status == 200,
-        "has_docs":             docs_status == 200,
+        "has_changelog":        200 in (changelog_status, changelog2_status),
+        "has_docs":             200 in (docs_status, docs2_status),
         "has_code_of_conduct":  coc_status == 200,
         "has_stale_bot":        stale_status == 200,
         "has_funding":          funding_status == 200,

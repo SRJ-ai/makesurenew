@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, RefreshCw, ScanLine, Search, Settings } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronUp, LogOut, RefreshCw, ScanLine, Search, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
@@ -7,17 +7,37 @@ import { dashboardApi, reposApi } from '../api/client'
 import RepoCard from '../components/RepoCard'
 import { useAuth } from '../hooks/useAuth'
 
+const CHECK_LABELS: Record<string, string> = {
+  has_readme: 'README', has_ci: 'CI workflow', has_tests: 'Tests', has_license: 'License',
+  ci_passing: 'CI passing', has_dependabot: 'Dependabot', has_security_policy: 'Security policy',
+  has_lock_file: 'Lock file', has_type_checking: 'Type checking', has_recent_commits: 'Recent commits',
+  has_contributing: 'CONTRIBUTING', has_codeowners: 'CODEOWNERS', has_linter: 'Linter',
+  has_formatter: 'Formatter', has_docker: 'Dockerfile', has_releases: 'Releases',
+  has_topics: 'Topics', has_devcontainer: 'Dev container', has_makefile: 'Makefile',
+  has_good_first_issue: 'Good first issues', has_api_docs: 'API docs',
+  has_issue_templates: 'Issue templates', has_pr_template: 'PR template',
+  has_gitignore: '.gitignore', has_env_example: '.env.example', has_pre_commit: 'Pre-commit hooks',
+  has_support: 'SUPPORT', has_description: 'Description', has_changelog: 'Changelog',
+  has_docs: 'Docs folder', has_code_of_conduct: 'Code of conduct', has_stale_bot: 'Stale bot',
+  has_funding: 'FUNDING', has_homepage: 'Homepage', has_scorecard: 'OSSF Scorecard',
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
-  // IDs of repos that had no score when "Scan all" was clicked
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<'name' | 'score' | 'scanned'>('name')
+  const [expandedIssue, setExpandedIssue] = useState<string | null>(null)
 
   const { data: summary } = useQuery({
     queryKey: ['summary'],
     queryFn: dashboardApi.summary,
+  })
+
+  const { data: topIssues } = useQuery({
+    queryKey: ['top-issues'],
+    queryFn: () => dashboardApi.topIssues(8),
   })
 
   const { data: repos, isLoading } = useQuery({
@@ -32,6 +52,7 @@ export default function Dashboard() {
     if (!stillPending) {
       setPendingIds(new Set())
       queryClient.invalidateQueries({ queryKey: ['summary'] })
+      queryClient.invalidateQueries({ queryKey: ['top-issues'] })
       toast.success('All repos scanned!')
     }
   }, [repos, pendingIds, queryClient])
@@ -96,6 +117,62 @@ export default function Dashboard() {
                 <p className="text-2xl font-bold">{value}</p>
               </div>
             ))}
+          </div>
+        )}
+
+        {topIssues && topIssues.length > 0 && (
+          <div className="bg-gray-900 rounded-xl p-6 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0" />
+              <h2 className="font-semibold">Most common issues across your repos</h2>
+            </div>
+            <div className="space-y-3">
+              {topIssues.map((issue) => {
+                const pct = Math.round((issue.failing_count / issue.total_scanned) * 100)
+                const isExpanded = expandedIssue === issue.check
+                const barColor = pct >= 80 ? 'bg-red-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-orange-400'
+                return (
+                  <div key={issue.check}>
+                    <button
+                      className="w-full text-left"
+                      onClick={() => setExpandedIssue(isExpanded ? null : issue.check)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-300 w-40 shrink-0 truncate">
+                          {CHECK_LABELS[issue.check] ?? issue.check}
+                        </span>
+                        <div className="flex-1 bg-gray-800 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${barColor}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-400 w-20 text-right shrink-0">
+                          {issue.failing_count}/{issue.total_scanned} repos
+                        </span>
+                        {isExpanded
+                          ? <ChevronUp className="w-4 h-4 text-gray-500 shrink-0" />
+                          : <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
+                        }
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="mt-2 ml-[11.5rem] flex flex-wrap gap-2">
+                        {issue.repos.map((r) => (
+                          <Link
+                            key={r.id}
+                            to={`/repos/${r.id}`}
+                            className="text-xs bg-gray-800 hover:bg-gray-700 text-blue-400 hover:text-blue-300 px-2 py-1 rounded transition-colors"
+                          >
+                            {r.full_name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

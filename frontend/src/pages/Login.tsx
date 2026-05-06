@@ -59,13 +59,15 @@ export default function Login() {
           >
             PRs Welcome
           </a>
-          <a
-            href="https://srj-ai.github.io/makesurenew/"
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-blue-900/20 border border-blue-700/30 text-blue-400 hover:text-blue-300 text-xs px-3 py-1 rounded-full transition-colors"
-          >
-            Live demo ↗
-          </a>
+          {!IS_DEMO && (
+            <a
+              href="https://srj-ai.github.io/makesurenew/"
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 bg-blue-900/20 border border-blue-700/30 text-blue-400 hover:text-blue-300 text-xs px-3 py-1 rounded-full transition-colors"
+            >
+              Live demo ↗
+            </a>
+          )}
         </div>
 
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6 leading-tight">

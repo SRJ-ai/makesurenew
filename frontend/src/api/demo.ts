@@ -24,11 +24,62 @@ const ALL_PASS: Record<string, boolean> = {
   has_homepage: true, has_scorecard: true,
 }
 
-// Helper: build issues list from a failing-checks map
 function issues(failing: Record<string, { sev: 'high' | 'medium'; msg: string }>) {
   return Object.entries(failing).map(([check, { sev, msg }]) => ({
     check, severity: sev, message: msg,
   }))
+}
+
+// Mutable state: tracks repos whose scan was simulated after "Scan now" click
+const _scanOverrides = new Map<number, Partial<Repo>>()
+
+// Schedule a simulated scan result after `delayMs` ms
+function _scheduleScan(id: number, delayMs = 2500) {
+  setTimeout(() => {
+    const result = _SCAN_RESULTS[id]
+    if (result) {
+      _scanOverrides.set(id, {
+        ...result,
+        last_scanned_at: new Date().toISOString(),
+      })
+    }
+  }, delayMs)
+}
+
+// Pre-defined scan results for the unscanned repo (id=5)
+const _SCAN_RESULTS: Record<number, Partial<Repo>> = {
+  5: {
+    health_score: 47,
+    scan_results: {
+      checks: {
+        ...ALL_PASS,
+        has_security_policy: false, has_dependabot: false, has_codeowners: false,
+        has_contributing: false, has_lock_file: false, has_type_checking: false,
+        has_docker: false, has_releases: false, has_devcontainer: false,
+        has_makefile: false, has_good_first_issue: false, has_api_docs: false,
+        has_issue_templates: false, has_pr_template: false, has_env_example: false,
+        has_pre_commit: false, has_support: false, has_changelog: false,
+        has_docs: false, has_stale_bot: false, has_funding: false,
+        has_scorecard: false,
+      },
+      issues: issues({
+        has_security_policy: { sev: 'high',   msg: 'No SECURITY.md — document how to responsibly report vulnerabilities' },
+        has_dependabot:      { sev: 'high',   msg: 'No Dependabot config — add .github/dependabot.yml for automatic security patches' },
+        has_lock_file:       { sev: 'high',   msg: 'No lock file — add package-lock.json or yarn.lock for reproducible builds' },
+        has_codeowners:      { sev: 'medium', msg: 'No CODEOWNERS file — add .github/CODEOWNERS to auto-assign reviewers' },
+        has_contributing:    { sev: 'medium', msg: 'No CONTRIBUTING.md — help new contributors get started' },
+        has_type_checking:   { sev: 'medium', msg: 'No type checking config — add tsconfig.json or mypy.ini' },
+        has_docker:          { sev: 'medium', msg: 'No Dockerfile — containerise for reproducible environments' },
+        has_changelog:       { sev: 'medium', msg: 'No CHANGELOG.md — document your release history' },
+        has_scorecard:       { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to track security posture' },
+      }),
+    },
+  },
+}
+
+function applyOverride(repo: Repo): Repo {
+  const override = _scanOverrides.get(repo.id)
+  return override ? { ...repo, ...override } : repo
 }
 
 export const DEMO_REPOS: Repo[] = [
@@ -48,7 +99,6 @@ export const DEMO_REPOS: Repo[] = [
     name: 'react-dashboard',
     description: 'Analytics dashboard — CI & tests present but missing many best practices',
     is_private: false,
-    // passing: readme(8)+ci(8)+tests(7)+ci_passing(5)+recent_commits(4)+gitignore(1)+description(1) = 34
     health_score: 34,
     last_scanned_at: new Date().toISOString(),
     scan_results: {
@@ -73,26 +123,12 @@ export const DEMO_REPOS: Repo[] = [
         has_type_checking:    { sev: 'medium', msg: 'No type checking config — add tsconfig.json or mypy.ini to catch type errors early' },
         has_contributing:     { sev: 'medium', msg: 'No CONTRIBUTING.md — help new contributors get started' },
         has_codeowners:       { sev: 'medium', msg: 'No CODEOWNERS file — add .github/CODEOWNERS to auto-assign reviewers' },
-        has_linter:           { sev: 'medium', msg: 'No linter config (.eslintrc, .flake8, .rubocop.yml) — enforce code style automatically' },
+        has_linter:           { sev: 'medium', msg: 'No linter config (.eslintrc, ruff.toml, .flake8) — enforce code style automatically' },
         has_formatter:        { sev: 'medium', msg: 'No formatter config (.prettierrc, .editorconfig) — enforce consistent formatting' },
         has_docker:           { sev: 'medium', msg: 'No Dockerfile — containerise so contributors can run the project without manual setup' },
         has_releases:         { sev: 'medium', msg: 'No releases published — tag versions so users know what to install' },
         has_topics:           { sev: 'medium', msg: 'No repository topics — add tags to improve discoverability' },
-        has_devcontainer:     { sev: 'medium', msg: 'No dev container — add .devcontainer/devcontainer.json for one-click environments' },
-        has_makefile:         { sev: 'medium', msg: 'No Makefile — add one to standardise test, build, and lint commands' },
-        has_good_first_issue: { sev: 'medium', msg: "No open 'good first issue' issues — label some to welcome new contributors" },
-        has_api_docs:         { sev: 'medium', msg: 'No API docs (openapi.yml, swagger.yml) — document your API contract' },
-        has_issue_templates:  { sev: 'medium', msg: 'No issue templates — add .github/ISSUE_TEMPLATE to guide bug reports' },
-        has_pr_template:      { sev: 'medium', msg: 'No PR template — add .github/pull_request_template.md to standardize contributions' },
-        has_env_example:      { sev: 'medium', msg: "No .env.example — contributors can't know which environment variables are needed" },
-        has_pre_commit:       { sev: 'medium', msg: 'No pre-commit hooks — add .pre-commit-config.yaml to catch issues before push' },
-        has_support:          { sev: 'medium', msg: 'No SUPPORT.md — tell users where to ask questions and get help' },
         has_changelog:        { sev: 'medium', msg: 'No CHANGELOG.md — document your release history' },
-        has_docs:             { sev: 'medium', msg: 'No docs/ folder — add documentation for users and contributors' },
-        has_code_of_conduct:  { sev: 'medium', msg: 'No CODE_OF_CONDUCT.md — set community expectations' },
-        has_stale_bot:        { sev: 'medium', msg: 'No stale issue management — add .github/stale.yml to auto-close inactive issues' },
-        has_funding:          { sev: 'medium', msg: 'No FUNDING.yml — add .github/FUNDING.yml to enable GitHub Sponsors' },
-        has_homepage:         { sev: 'medium', msg: 'No homepage URL — add a project website or docs link in the About section' },
         has_scorecard:        { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to continuously track security posture' },
       }),
     },
@@ -103,7 +139,6 @@ export const DEMO_REPOS: Repo[] = [
     name: 'old-scraper',
     description: 'Legacy web scraper — critically unhealthy, barely any checks pass',
     is_private: false,
-    // only: gitignore(1)+description(1) = 2
     health_score: 2,
     last_scanned_at: new Date().toISOString(),
     scan_results: {
@@ -132,29 +167,10 @@ export const DEMO_REPOS: Repo[] = [
         has_security_policy:  { sev: 'high',   msg: 'No SECURITY.md — document how to responsibly report vulnerabilities' },
         has_lock_file:        { sev: 'high',   msg: 'No lock file — add package-lock.json/yarn.lock/poetry.lock for reproducible builds' },
         has_recent_commits:   { sev: 'medium', msg: 'No commits in 90 days — consider archiving or updating' },
-        has_type_checking:    { sev: 'medium', msg: 'No type checking config — add tsconfig.json or mypy.ini to catch type errors early' },
         has_contributing:     { sev: 'medium', msg: 'No CONTRIBUTING.md — help new contributors get started' },
         has_codeowners:       { sev: 'medium', msg: 'No CODEOWNERS file — add .github/CODEOWNERS to auto-assign reviewers' },
-        has_linter:           { sev: 'medium', msg: 'No linter config (.eslintrc, .flake8, .rubocop.yml) — enforce code style automatically' },
-        has_formatter:        { sev: 'medium', msg: 'No formatter config (.prettierrc, .editorconfig) — enforce consistent formatting' },
+        has_linter:           { sev: 'medium', msg: 'No linter config — enforce code style automatically' },
         has_docker:           { sev: 'medium', msg: 'No Dockerfile — containerise so contributors can run the project without manual setup' },
-        has_releases:         { sev: 'medium', msg: 'No releases published — tag versions so users know what to install' },
-        has_topics:           { sev: 'medium', msg: 'No repository topics — add tags to improve discoverability' },
-        has_devcontainer:     { sev: 'medium', msg: 'No dev container — add .devcontainer/devcontainer.json for one-click environments' },
-        has_makefile:         { sev: 'medium', msg: 'No Makefile — add one to standardise test, build, and lint commands' },
-        has_good_first_issue: { sev: 'medium', msg: "No open 'good first issue' issues — label some to welcome new contributors" },
-        has_api_docs:         { sev: 'medium', msg: 'No API docs (openapi.yml, swagger.yml) — document your API contract' },
-        has_issue_templates:  { sev: 'medium', msg: 'No issue templates — add .github/ISSUE_TEMPLATE to guide bug reports' },
-        has_pr_template:      { sev: 'medium', msg: 'No PR template — add .github/pull_request_template.md to standardize contributions' },
-        has_env_example:      { sev: 'medium', msg: "No .env.example — contributors can't know which environment variables are needed" },
-        has_pre_commit:       { sev: 'medium', msg: 'No pre-commit hooks — add .pre-commit-config.yaml to catch issues before push' },
-        has_support:          { sev: 'medium', msg: 'No SUPPORT.md — tell users where to ask questions and get help' },
-        has_changelog:        { sev: 'medium', msg: 'No CHANGELOG.md — document your release history' },
-        has_docs:             { sev: 'medium', msg: 'No docs/ folder — add documentation for users and contributors' },
-        has_code_of_conduct:  { sev: 'medium', msg: 'No CODE_OF_CONDUCT.md — set community expectations' },
-        has_stale_bot:        { sev: 'medium', msg: 'No stale issue management — add .github/stale.yml to auto-close inactive issues' },
-        has_funding:          { sev: 'medium', msg: 'No FUNDING.yml — add .github/FUNDING.yml to enable GitHub Sponsors' },
-        has_homepage:         { sev: 'medium', msg: 'No homepage URL — add a project website or docs link in the About section' },
         has_scorecard:        { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to continuously track security posture' },
       }),
     },
@@ -165,7 +181,6 @@ export const DEMO_REPOS: Repo[] = [
     name: 'private-tool',
     description: 'Internal automation — core engineering checks pass, community health missing',
     is_private: true,
-    // passing: readme(8)+ci(8)+tests(7)+license(6)+ci_passing(5)+lock_file(5)+recent_commits(4)+type_checking(4)+linter(3)+formatter(3)+gitignore(1)+description(1) = 55
     health_score: 55,
     last_scanned_at: new Date().toISOString(),
     scan_results: {
@@ -187,23 +202,7 @@ export const DEMO_REPOS: Repo[] = [
         has_contributing:     { sev: 'medium', msg: 'No CONTRIBUTING.md — help new contributors get started' },
         has_codeowners:       { sev: 'medium', msg: 'No CODEOWNERS file — add .github/CODEOWNERS to auto-assign reviewers' },
         has_docker:           { sev: 'medium', msg: 'No Dockerfile — containerise so contributors can run the project without manual setup' },
-        has_releases:         { sev: 'medium', msg: 'No releases published — tag versions so users know what to install' },
-        has_topics:           { sev: 'medium', msg: 'No repository topics — add tags to improve discoverability' },
-        has_devcontainer:     { sev: 'medium', msg: 'No dev container — add .devcontainer/devcontainer.json for one-click environments' },
-        has_makefile:         { sev: 'medium', msg: 'No Makefile — add one to standardise test, build, and lint commands' },
-        has_good_first_issue: { sev: 'medium', msg: "No open 'good first issue' issues — label some to welcome new contributors" },
-        has_api_docs:         { sev: 'medium', msg: 'No API docs (openapi.yml, swagger.yml) — document your API contract' },
-        has_issue_templates:  { sev: 'medium', msg: 'No issue templates — add .github/ISSUE_TEMPLATE to guide bug reports' },
-        has_pr_template:      { sev: 'medium', msg: 'No PR template — add .github/pull_request_template.md to standardize contributions' },
-        has_env_example:      { sev: 'medium', msg: "No .env.example — contributors can't know which environment variables are needed" },
-        has_pre_commit:       { sev: 'medium', msg: 'No pre-commit hooks — add .pre-commit-config.yaml to catch issues before push' },
-        has_support:          { sev: 'medium', msg: 'No SUPPORT.md — tell users where to ask questions and get help' },
         has_changelog:        { sev: 'medium', msg: 'No CHANGELOG.md — document your release history' },
-        has_docs:             { sev: 'medium', msg: 'No docs/ folder — add documentation for users and contributors' },
-        has_code_of_conduct:  { sev: 'medium', msg: 'No CODE_OF_CONDUCT.md — set community expectations' },
-        has_stale_bot:        { sev: 'medium', msg: 'No stale issue management — add .github/stale.yml to auto-close inactive issues' },
-        has_funding:          { sev: 'medium', msg: 'No FUNDING.yml — add .github/FUNDING.yml to enable GitHub Sponsors' },
-        has_homepage:         { sev: 'medium', msg: 'No homepage URL — add a project website or docs link in the About section' },
         has_scorecard:        { sev: 'medium', msg: 'Not running OSSF Scorecard — add the workflow to continuously track security posture' },
       }),
     },
@@ -212,7 +211,7 @@ export const DEMO_REPOS: Repo[] = [
     id: 5,
     full_name: 'demo-user/cli-utils',
     name: 'cli-utils',
-    description: 'Collection of useful CLI utilities',
+    description: 'Collection of useful CLI utilities — click "Scan now" to try a live scan',
     is_private: false,
     health_score: null,
     last_scanned_at: null,
@@ -220,15 +219,7 @@ export const DEMO_REPOS: Repo[] = [
   },
 ]
 
-export const DEMO_SUMMARY: DashboardSummary = {
-  total_repos: DEMO_REPOS.length,
-  scanned_repos: DEMO_REPOS.filter((r) => r.health_score !== null).length,
-  average_health_score: 48,
-  healthy: 1,
-  needs_attention: 3,
-}
-
-const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms))
+const delay = (ms = 400) => new Promise<void>((r) => setTimeout(r, ms))
 
 export const demoAuthApi = {
   me: async () => { await delay(200); return DEMO_USER },
@@ -238,7 +229,7 @@ export const demoAuthApi = {
 export const demoReposApi = {
   list: async (params?: ListReposParams) => {
     await delay()
-    let repos = [...DEMO_REPOS]
+    let repos = DEMO_REPOS.map(applyOverride)
     if (params?.q) {
       repos = repos.filter((r) => r.full_name.toLowerCase().includes(params.q!.toLowerCase()))
     }
@@ -250,13 +241,30 @@ export const demoReposApi = {
     return repos
   },
   sync: async () => { await delay(800); return { synced: DEMO_REPOS.length } },
-  scanAll: async () => { await delay(600); return { count: DEMO_REPOS.length } },
-  scan: async (_id: number) => { await delay(600); return { status: 'scan queued' } },
-  get: async (id: number) => { await delay(200); return DEMO_REPOS.find((r) => r.id === id)! },
+  scanAll: async () => {
+    await delay(400)
+    // Schedule scans for any repos that have no results yet
+    DEMO_REPOS.forEach((r) => {
+      if (r.health_score === null && !_scanOverrides.has(r.id)) {
+        _scheduleScan(r.id, 2000 + Math.random() * 1500)
+      }
+    })
+    return { count: DEMO_REPOS.length }
+  },
+  scan: async (id: number) => {
+    await delay(300)
+    if (!_scanOverrides.has(id)) _scheduleScan(id)
+    return { status: 'scan queued' }
+  },
+  get: async (id: number) => {
+    await delay(200)
+    const repo = DEMO_REPOS.find((r) => r.id === id)!
+    return applyOverride(repo)
+  },
   history: async (id: number): Promise<ScanHistoryEntry[]> => {
     await delay(200)
-    const repo = DEMO_REPOS.find((r) => r.id === id)
-    if (!repo?.health_score) return []
+    const repo = applyOverride(DEMO_REPOS.find((r) => r.id === id)!)
+    if (!repo.health_score) return []
     const base = repo.health_score
     return Array.from({ length: 10 }, (_, i) => ({
       id: i + 1,
@@ -266,18 +274,57 @@ export const demoReposApi = {
   },
 }
 
+// Derived from the actual DEMO_REPOS scan results (scanned repos 1–4)
 const DEMO_TOP_ISSUES: TopIssue[] = [
-  { check: 'has_security_policy',  failing_count: 4, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_codeowners',       failing_count: 4, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_contributing',     failing_count: 3, total_scanned: 5, repos: [{ id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_dependabot',       failing_count: 3, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_lock_file',        failing_count: 3, total_scanned: 5, repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_changelog',        failing_count: 3, total_scanned: 5, repos: [{ id: 3, full_name: 'demo-user/cli-tool' }, { id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_docker',           failing_count: 2, total_scanned: 5, repos: [{ id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
-  { check: 'has_scorecard',        failing_count: 2, total_scanned: 5, repos: [{ id: 4, full_name: 'demo-user/legacy-app' }, { id: 5, full_name: 'demo-user/weekend-hack' }] },
+  {
+    check: 'has_security_policy', failing_count: 3, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }, { id: 4, full_name: 'demo-user/private-tool' }],
+  },
+  {
+    check: 'has_dependabot', failing_count: 3, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }, { id: 4, full_name: 'demo-user/private-tool' }],
+  },
+  {
+    check: 'has_contributing', failing_count: 3, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }, { id: 4, full_name: 'demo-user/private-tool' }],
+  },
+  {
+    check: 'has_codeowners', failing_count: 3, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }, { id: 4, full_name: 'demo-user/private-tool' }],
+  },
+  {
+    check: 'has_license', failing_count: 2, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }],
+  },
+  {
+    check: 'has_lock_file', failing_count: 2, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }],
+  },
+  {
+    check: 'has_docker', failing_count: 3, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }, { id: 4, full_name: 'demo-user/private-tool' }],
+  },
+  {
+    check: 'has_scorecard', failing_count: 3, total_scanned: 4,
+    repos: [{ id: 2, full_name: 'demo-user/react-dashboard' }, { id: 3, full_name: 'demo-user/old-scraper' }, { id: 4, full_name: 'demo-user/private-tool' }],
+  },
 ]
 
 export const demoDashboardApi = {
-  summary: async () => { await delay(300); return DEMO_SUMMARY },
+  summary: async (): Promise<DashboardSummary> => {
+    await delay(300)
+    const repos = DEMO_REPOS.map(applyOverride)
+    const scanned = repos.filter((r) => r.health_score !== null)
+    const avg = scanned.length
+      ? Math.round(scanned.reduce((s, r) => s + r.health_score!, 0) / scanned.length)
+      : null
+    return {
+      total_repos: repos.length,
+      scanned_repos: scanned.length,
+      average_health_score: avg,
+      healthy: scanned.filter((r) => r.health_score! >= 80).length,
+      needs_attention: scanned.filter((r) => r.health_score! < 80).length,
+    }
+  },
   topIssues: async (_limit = 8): Promise<TopIssue[]> => { await delay(300); return DEMO_TOP_ISSUES },
 }

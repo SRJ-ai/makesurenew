@@ -1,10 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle, Copy, ExternalLink, Scan, XCircle } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CheckCircle, Copy, ExternalLink, Scan, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { AlertCircle, ArrowLeft, CheckCircle, Copy, Scan, XCircle } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import toast from 'react-hot-toast'
 import { reposApi } from '../api/client'
 
 const FIX_LINKS: Record<string, (fullName: string) => string> = {
@@ -115,8 +113,6 @@ const CATEGORIES = [
   },
 ] as const
 
-const BADGE_BASE = 'https://makesurenew.onrender.com'
-
 export default function RepoDetail() {
   const { id } = useParams<{ id: string }>()
   const repoId = Number(id)
@@ -148,16 +144,10 @@ export default function RepoDetail() {
     mutationFn: () => reposApi.scan(repoId),
     onSuccess: () => setScanTriggeredAt(new Date().toISOString()),
     onError: () => toast.error('Scan failed — try again'),
-    onSuccess: () => {
-      toast.success('Scan started — results update in a few seconds')
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['repo', repoId] }), 4000)
-    },
-    onError: () => toast.error('Scan failed — please try again'),
   })
 
   function copyBadge() {
     if (!repo) return
-    const badge = `[![makesurenew](${BADGE_BASE}/api/badge/${repo.full_name})](${BADGE_BASE})`
     const badge = `[![makesurenew](https://makesurenew.onrender.com/api/badge/${repo.full_name})](https://srj-ai.github.io/makesurenew/)`
     navigator.clipboard.writeText(badge)
     toast.success('Badge markdown copied!')
@@ -189,15 +179,6 @@ export default function RepoDetail() {
     repo.health_score == null ? '' :
     repo.health_score >= 80 ? 'bg-green-400' :
     repo.health_score >= 50 ? 'bg-yellow-400' : 'bg-red-400'
-    repo.health_score == null ? ''
-    : repo.health_score >= 80 ? 'text-green-400'
-    : repo.health_score >= 50 ? 'text-yellow-400'
-    : 'text-red-400'
-  const barColor =
-    repo.health_score == null ? ''
-    : repo.health_score >= 80 ? 'bg-green-400'
-    : repo.health_score >= 50 ? 'bg-yellow-400'
-    : 'bg-red-400'
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -231,27 +212,6 @@ export default function RepoDetail() {
             >
               <Scan className={`w-4 h-4 ${scanTriggeredAt ? 'animate-pulse' : ''}`} />
               {scanTriggeredAt ? 'Scanning…' : 'Scan now'}
-            </button>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">{repo.full_name}</h1>
-            {repo.description && <p className="text-gray-500 mt-1 text-sm">{repo.description}</p>}
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={copyBadge}
-              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg text-sm transition-colors"
-            >
-              <Copy className="w-4 h-4" />
-              Badge
-            </button>
-            <button
-              onClick={() => scan.mutate()}
-              disabled={scan.isPending}
-              className="flex items-center gap-2 bg-green-700 hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              <Scan className="w-4 h-4" />
-              {scan.isPending ? 'Scanning…' : 'Scan now'}
             </button>
           </div>
         </div>
@@ -324,16 +284,6 @@ export default function RepoDetail() {
                   </div>
                 )
               })}
-            <h2 className="font-semibold mb-4">Checks</h2>
-            <div className="space-y-3">
-              {Object.entries(checks).map(([check, passed]) => (
-                <div key={check} className="flex items-center gap-3">
-                  {passed
-                    ? <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-                    : <XCircle className="w-5 h-5 text-red-400 shrink-0" />}
-                  <span className="text-sm text-gray-300 capitalize">{check.replace(/_/g, ' ')}</span>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -382,7 +332,23 @@ export default function RepoDetail() {
             <p className="text-green-300 font-semibold">All checks pass!</p>
             <p className="text-green-600 text-sm mt-1">This repo scores perfectly on every check.</p>
           </div>
-        ) : null}
+        ) : (
+          <div className="text-center py-12 bg-gray-900 rounded-xl">
+            <p className="text-gray-500 mb-4">This repo hasn't been scanned yet.</p>
+            <button
+              onClick={() => scan.mutate()}
+              className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Run first scan
+            </button>
+          </div>
+        )}
+
+        {scanTriggeredAt && (
+          <div className="text-center py-8 text-yellow-400 text-sm animate-pulse">
+            Scan in progress — results will appear automatically…
+          </div>
+        )}
 
         {history && history.length > 1 && (
           <div className="bg-gray-900 rounded-xl p-6 mt-6">
@@ -406,42 +372,6 @@ export default function RepoDetail() {
               })}
             </div>
             <p className="text-gray-500 text-xs mt-2">Last {history.length} scans</p>
-        {issues.length > 0 && (
-          <div className="space-y-3 mb-6">
-            <h2 className="font-semibold">Issues to fix</h2>
-            {issues.map((issue) => (
-              <div
-                key={issue.check}
-                className={`rounded-xl p-4 border-l-4 ${
-                  issue.severity === 'high'
-                    ? 'bg-red-950 border-red-500'
-                    : 'bg-yellow-950 border-yellow-500'
-                }`}
-              >
-                <p className="text-sm text-gray-200">{issue.message}</p>
-                <span className={`text-xs mt-1 inline-block ${issue.severity === 'high' ? 'text-red-400' : 'text-yellow-400'}`}>
-                  {issue.severity} priority
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {repo.health_score == null && !scanTriggeredAt && (
-          <div className="text-center py-12 bg-gray-900 rounded-xl">
-            <p className="text-gray-500 mb-4">This repo hasn't been scanned yet.</p>
-            <button
-              onClick={() => scan.mutate()}
-              className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-            >
-              Run first scan
-            </button>
-          </div>
-        )}
-
-        {scanTriggeredAt && (
-          <div className="text-center py-8 text-yellow-400 text-sm animate-pulse">
-            Scan in progress — results will appear automatically…
           </div>
         )}
       </div>

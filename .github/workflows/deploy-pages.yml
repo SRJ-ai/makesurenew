@@ -37,17 +37,17 @@ jobs:
           VITE_DEMO_MODE: "true"
           VITE_BASE_PATH: /makesurenew/
 
-      - name: Publish to docs/
+      - name: Publish to repo root (main/root Pages source)
         run: |
-          rm -rf docs
-          cp -r frontend/dist docs
-          cp docs/index.html docs/404.html
-          touch docs/.nojekyll
+          rm -rf assets docs
+          cp -r frontend/dist/assets ./assets
+          cp frontend/dist/index.html ./index.html
+          cp index.html 404.html
 
-      - name: Commit and push docs
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
+          git add index.html 404.html assets/
           git diff --staged --quiet || git commit -m "chore: update demo build [skip ci]"
           git push
